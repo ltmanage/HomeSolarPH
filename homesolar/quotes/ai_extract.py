@@ -98,7 +98,13 @@ def extract(kind: str, data: bytes, text: str, label: str, client: httpx.Client 
             except httpx.HTTPError as e:
                 raise ExtractionUnavailable(f"AI service not reachable: {e.__class__.__name__}") from e
             if r.status_code != 200:
-                raise ExtractionUnavailable(f"AI service returned {r.status_code}")
+                detail = ""
+                try:
+                    err = r.json().get("error", {})
+                    detail = (err.get("message") or err.get("type") or "") if isinstance(err, dict) else str(err)
+                except ValueError:
+                    pass
+                raise ExtractionUnavailable(f"AI service returned {r.status_code} {detail[:150]}".strip())
             try:
                 reply = r.json()["choices"][0]["message"]["content"]
                 if isinstance(reply, list):
