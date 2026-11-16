@@ -26,8 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
       - name: Install dependencies
@@ -70,7 +70,7 @@ jobs:
             echo "ok=false" >> "$GITHUB_OUTPUT"
             echo "::notice::Vercel secrets not set; skipping preview deploy."
           fi
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.gate.outputs.ok == 'true'
       - name: Deploy preview
         if: steps.gate.outputs.ok == 'true'
@@ -104,7 +104,7 @@ jobs:
             echo "ok=false" >> "$GITHUB_OUTPUT"
             echo "::notice::Vercel secrets not set; skipping production deploy."
           fi
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.gate.outputs.ok == 'true'
       - name: Deploy production
         if: steps.gate.outputs.ok == 'true'
