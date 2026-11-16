@@ -195,6 +195,41 @@ def health():
             "sharing_enabled": settings.sharing_enabled}
 
 
+@app.get("/api/ai-check")
+def ai_check(model: str | None = None):
+    """TEMPORARY diagnostic: models this key can use, and the time for a tiny request. Counts toward the daily cap."""
+    import time
+
+    import httpx
+    if settings.ai_provider != "gemini" or not settings.ai_enabled:
+        return {"error": "Gemini not configured"}
+    if not store.ai_call_allowed():
+        return {"error": "daily cap reached"}
+    m = (model or settings.ai_model)[:60]
+    out: dict = {"model_tested": m}
+    with httpx.Client(timeout=40) as c:
+        h = {"Authorization": f"Bearer {settings.ai_key}"}
+        try:
+            r = c.get(f"{settings.ai_base_url}/models", headers=h)
+            ids = [x.get("id", "") for x in r.json().get("data", [])] if r.status_code == 200 else []
+            out["flash_models"] = sorted(i.removeprefix("models/") for i in ids if "flash" in i)[:40]
+            out["models_status"] = r.status_code
+        except Exception as e:   # diagnostic only
+            out["models_error"] = e.__class__.__name__
+        for effort in ("low", None):
+            body = {"model": m, "messages": [{"role": "user", "content": "Reply with the single word OK."}]}
+            if effort:
+                body["reasoning_effort"] = effort
+            t = time.time()
+            try:
+                r = c.post(f"{settings.ai_base_url}/chat/completions", json=body, headers=h)
+                out[f"chat_{effort or 'default'}"] = {"status": r.status_code, "seconds": round(time.time() - t, 1),
+                                                      "body": r.text[:300]}
+            except Exception as e:
+                out[f"chat_{effort or 'default'}"] = {"error": e.__class__.__name__, "seconds": round(time.time() - t, 1)}
+    return out
+
+
 @app.exception_handler(404)
 async def not_found(request: Request, exc):
     if request.url.path.startswith("/api/"):
