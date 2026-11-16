@@ -36,7 +36,7 @@ GitHub Actions (`.github/workflows/ci-cd.yml`) runs lint, tests, a requirements 
 ## Deploy to Vercel (free Hobby plan)
 
 1. In Vercel, **Add New → Project**, import the `HomeSolarPH` GitHub repository. Framework preset: FastAPI (detected). No build command needed. (Vercel won't auto-deploy on pushes; GitHub Actions does.)
-2. **AI for reading quotes (optional):** in the Vercel project → Settings → Environment Variables, add `GEMINI_API_KEY` (from Google AI Studio, free tier). Optional: `AI_MODEL` (default `gemini-2.5-flash`), `AI_DAILY_CAP` (default 50). Alternatively use Vercel AI Gateway (`AI_PROVIDER=gateway`), which needs a card on file.
+2. **AI for reading quotes (optional):** in the Vercel project → Settings → Environment Variables, add `GEMINI_API_KEY` (from Google AI Studio, free tier). Optional: `AI_MODEL` (default `gemini-3.8-flash`), `AI_DAILY_CAP` (default 50). Alternatively use Vercel AI Gateway (`AI_PROVIDER=gateway`), which needs a card on file.
 3. **Database (optional, for sharing and feedback):** add **Neon** from the Vercel Marketplace (free plan) and connect it to the project; it sets `DATABASE_URL`. Run `db/schema.sql` once in the Neon SQL editor.
 4. In GitHub → Settings → Secrets and variables → Actions, add secrets `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` and the variable `PRODUCTION_URL`.
 5. Re-run the latest **CI/CD** workflow on `main` (Actions tab → Run workflow). It deploys and checks `/api/health` on the live site.

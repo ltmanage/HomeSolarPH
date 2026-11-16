@@ -117,7 +117,7 @@ def test_gemini_provider_selected_by_key(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "g-key")
     assert settings.ai_provider == "gemini" and settings.ai_enabled
     assert settings.ai_base_url.startswith("https://generativelanguage.googleapis.com/")
-    assert settings.ai_model == "gemini-2.5-flash"
+    assert settings.ai_model == "gemini-3.8-flash"
 
     def handler(request):
         assert str(request.url) == "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
