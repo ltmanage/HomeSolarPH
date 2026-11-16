@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}How this app works{% endblock %}
+{% block content %}
+<h1>How this app works</h1>
+
+<section class="prose">
+<h2>Who we are and who pays</h2>
+<p>HomeSolarPH is a free, independent test project to help Philippine homeowners decide whether rooftop solar makes sense. We do not sell solar systems, recommend or rank installers or brands, or earn commissions. No installer, supplier or utility pays for this app.</p>
+
+<h2>How the estimate is made</h2>
+<ul>
+  <li><strong>Solar output</strong> per region and roof direction comes from a public solar model: {{ yield_source }}</li>
+  <li><strong>Your usage and rate</strong> come from the bill figures you enter. If you leave out kWh, we estimate it from a default rate.</li>
+  <li><strong>Savings</strong> = solar power you use at home × your rate, plus power sent to the grid × the net-metering credit (if you apply).</li>
+  <li><strong>Payback</strong> = years of savings needed to cover the installed cost, allowing for panel ageing, an inverter replacement, and a range of future rate changes.</li>
+  <li>Results are shown as <strong>ranges</strong>: a cautious case and an optimistic case.</li>
+</ul>
+<p>Assumptions as of {{ d.as_of }}. You can change most of them on the results page.</p>
+<div class="table-wrap"><table class="cmp">
+  <tr><th>Assumption</th><th>Value</th><th>Source</th></tr>
+  <tr><td>{{ d.rate_per_kwh.label }}</td><td>Meralco {{ d.rate_per_kwh["values"].meralco }}, other utilities {{ d.rate_per_kwh["values"].private_du }}, cooperatives {{ d.rate_per_kwh["values"].coop }}</td><td>{{ d.rate_per_kwh.source }}</td></tr>
+  <tr><td>{{ d.export_credit_per_kwh.label }}</td><td>Meralco {{ d.export_credit_per_kwh["values"].meralco }}, other utilities {{ d.export_credit_per_kwh["values"].private_du }}, cooperatives {{ d.export_credit_per_kwh["values"].coop }}</td><td>{{ d.export_credit_per_kwh.source }}</td></tr>
+  <tr><td>{{ d.cost_per_kwp_php.label }}</td><td>PHP {{ "{:,}".format(d.cost_per_kwp_php.low) }}–{{ "{:,}".format(d.cost_per_kwp_php.high) }}</td><td>{{ d.cost_per_kwp_php.source }}</td></tr>
+  <tr><td>{{ d.self_use_share.label }}</td><td>Evening {{ d.self_use_share["values"].evening }}, mixed {{ d.self_use_share["values"].mixed }}, daytime {{ d.self_use_share["values"].daytime }}</td><td>{{ d.self_use_share.source }}</td></tr>
+  <tr><td>{{ d.tariff_escalation.label }}</td><td>{{ (d.tariff_escalation.low*100)|round(1) }}%–{{ (d.tariff_escalation.high*100)|round(1) }}%</td><td>{{ d.tariff_escalation.source }}</td></tr>
+  <tr><td>{{ d.degradation.label }}</td><td>{{ (d.degradation.value*100)|round(1) }}%</td><td>{{ d.degradation.source }}</td></tr>
+</table></div>
+
+<h2>Reading your quotes</h2>
+<p>When you upload a quote, the file is read once to pick out key figures{% if settings.ai_enabled %} (using an AI model through Vercel's AI Gateway){% endif %}, then discarded. We never store uploaded files. The AI only copies figures from the document; all calculations are done by the app, and you confirm every figure before comparing.</p>
+
+<h2>Your data</h2>
+<ul>
+  <li>No account, no name, no address, no contact details are asked for.</li>
+  <li>Nothing is saved unless you tick “I agree to share these anonymous figures”.</li>
+  <li>If you share, we store only: your region, provider type, bill and kWh, usage pattern, home and roof answers (roof area and budget as ranges), the estimate, and confirmed quote details (without installer names or notes), plus the month and year.</li>
+  <li>We never store IP addresses, uploaded files, your city or barangay.</li>
+  <li>You get a reference code. Use it below to delete your shared figures at any time.</li>
+  <li>This follows the Data Privacy Act of 2012. Shared figures are used only to build anonymous benchmarks, shown only for groups of 5 or more homes.</li>
+</ul>
+</section>
+
+{% if settings.sharing_enabled %}
+<section class="share">
+  <h2>Delete shared figures</h2>
+  <label>Reference code <input id="del-code" maxlength="20" autocomplete="off"></label>
+  <button class="btn" id="del-btn">Delete</button>
+  <p id="del-result" class="muted" aria-live="polite"></p>
+</section>
+{% endif %}
+
+<section class="prose">
+<h2>Limits</h2>
+<p>This is a test version. Estimates are indicative, not a quotation or engineering design. Actual output depends on your roof, shading, equipment and installation quality, and savings depend on future rates and net-metering rules. Always get a site survey and written quotes from qualified installers.</p>
+</section>
+{% endblock %}
+{% block scripts %}<script src="/static/common.js?v={{ version }}"></script>{% endblock %}

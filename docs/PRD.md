@@ -148,7 +148,7 @@ At the end of F1 and F3, the user may tick "Share my anonymous figures to help b
 
 - **Hosting:** Vercel (Hobby plan) only, during the test stage.
 - **Backend:** Python FastAPI running as a Vercel serverless function; server-rendered pages with light JavaScript; Chart.js for charts.
-- **Solar yield:** NREL PVWatts used offline to build a regional yield table (monthly kWh per kWp by region); the app reads this table, so no address is ever sent to an outside service. PVGIS is the fallback data source.
+- **Solar yield:** a public solar model (EU JRC PVGIS, cross-checked against NREL PVWatts) used offline to build a regional yield table (monthly kWh per kWp by region and roof direction); the app reads this table, so no address is ever sent to an outside service.
 - **Calculations:** pure Python module (sizing, savings, payback, quote normalization), fully unit-tested.
 - **AI (optional):** Vercel AI Gateway free monthly credits for quote extraction and plain-language text. No paid API in Stage 1. The app works fully without AI (manual quote entry, template explanations).
 - **Database:** free-tier Postgres via the Vercel Marketplace, used only for opt-in anonymous records and feedback.
@@ -193,6 +193,8 @@ Staging rule: a stage starts only when the previous one shows real use, and each
 - Language: plain English at launch.
 - AI: no paid API in the test stage; use what Vercel provides free.
 - Repo: private GitHub repository `HomeSolarPH`; research files kept outside the repo.
+- Hosting: Vercel free (Hobby) plan for a one-month test; expected to stay within the free allowances. Alternatives such as bolt.new were considered and not chosen (they target JavaScript apps).
+- Solar data: PVGIS (no key) for the regional table, PVWatts as cross-check.
 
 ## 13. Open questions
 

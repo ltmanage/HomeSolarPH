@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Your solar estimate{% endblock %}
+{% block content %}
+<h1>Your solar estimate</h1>
+<p class="muted">{{ e.region_name }} · bill {{ inp.bill_php|php }} · {{ e.kwh_month|num(0) }} kWh a month{% if e.kwh_estimated %} (estimated){% endif %}</p>
+
+<section class="verdict verdict-{{ e.verdict }}" id="verdict">
+  <h2 id="v-title">{{ ex.title }}</h2>
+  <p id="v-line">{{ ex.paragraphs[0] }}</p>
+</section>
+
+<section class="figures">
+  <div class="fig"><span class="k">Suggested size</span><span class="v" id="f-size">{{ e.size_low_kwp|num(1) }}–{{ e.size_high_kwp|num(1) }} kWp</span><span class="s">Figures below use <span id="f-size-used">{{ e.size_kwp|num(1) }}</span> kWp</span></div>
+  <div class="fig"><span class="k">Yearly savings</span><span class="v" id="f-sav">{{ e.conservative.yearly_savings_php|php }} – {{ e.optimistic.yearly_savings_php|php }}</span><span class="s">First year</span></div>
+  <div class="fig"><span class="k">Installed cost</span><span class="v" id="f-cost">{{ e.optimistic.cost_php|php }} – {{ e.conservative.cost_php|php }}</span><span class="s">Indicative range</span></div>
+  <div class="fig"><span class="k">Payback</span><span class="v" id="f-pb">{{ e.optimistic.payback_years|num(1) }} – {{ e.conservative.payback_years|num(1) if e.conservative.payback_years else "25+" }} years</span><span class="s">Simple payback</span></div>
+  <div class="fig"><span class="k">Monthly bill</span><span class="v" id="f-bill">{{ e.bill_before_php|php }} → about {{ e.bill_after_php|php }}</span><span class="s">Average, first year</span></div>
+  <div class="fig"><span class="k">25-year net savings</span><span class="v" id="f-net">{{ e.conservative.net_25y_php|php }} – {{ e.optimistic.net_25y_php|php }}</span><span class="s">After system cost</span></div>
+</section>
+
+<section>
+  <h2>Solar output and your use, month by month</h2>
+  <div class="chart-wrap"><canvas id="chart" height="220" aria-label="Monthly solar output compared with use"></canvas></div>
+  <p class="muted">Bars: estimated solar output, split into power used at home and power sent to the grid. Line: your monthly use.</p>
+</section>
+
+<section>
+  <h2>What this means</h2>
+  <div id="explain">
+    {% for p in ex.paragraphs[1:] %}<p>{{ p }}</p>{% endfor %}
+    {% if ex.tips %}<ul>{% for t in ex.tips %}<li>{{ t }}</li>{% endfor %}</ul>{% endif %}
+  </div>
+  {% if e.warnings %}<div class="alert soft" id="warnings"><ul>{% for w in e.warnings %}<li>{{ w }}</li>{% endfor %}</ul></div>{% endif %}
+</section>
+
+<section>
+  <h2>Assumptions</h2>
+  <p class="muted">Every figure comes from these assumptions. Change any white box and the results update.</p>
+  <form id="assumptions" class="assume">
+    <label>System size to evaluate (kWp)
+      <input name="size_kwp" type="number" step="0.5" min="0.5" max="50" value="{{ e.size_kwp }}">
+    </label>
+    {% for a in e.assumptions %}
+    <label class="{{ '' if a.editable else 'fixed' }}" title="{{ a.source }}">{{ a.label }}
+      {% if a.editable %}<input name="{{ a.key }}" type="number" step="any" value="{{ a.value }}">
+      {% else %}<span class="ro">{{ a.value }}</span>{% endif %}
+      <small>{{ a.source }}</small>
+    </label>
+    {% endfor %}
+    <button type="button" class="btn" id="reset">Reset to defaults</button>
+  </form>
+</section>
+
+<section>
+  <h2>Questions to ask installers</h2>
+  <ul class="checklist">{% for q in questions %}<li>{{ q }}</li>{% endfor %}</ul>
+  <p><a href="/guide/questions">Full question list</a> · <a href="/guide/red-flags">Red flags</a> · <a href="/guide/process">Steps from quote to switch-on</a></p>
+</section>
+
+<section class="actions">
+  <a class="btn primary" href="/quotes">Got quotes? Compare them with this estimate</a>
+  <button class="btn" id="copy">Copy summary</button>
+  <button class="btn" id="print">Print</button>
+  <a class="btn" href="/check">Start again</a>
+</section>
+
+{% include "_share.html" %}
+{% include "_feedback.html" %}
+
+<script type="application/json" id="inp-data">{{ inp_json|safe }}</script>
+<script type="application/json" id="est-data">{{ e_json|safe }}</script>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/static/common.js?v={{ version }}"></script>
+<script src="/static/results.js?v={{ version }}"></script>
+{% endblock %}

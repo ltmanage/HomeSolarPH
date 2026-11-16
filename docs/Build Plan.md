@@ -1,10 +1,14 @@
 # HomeSolarPH: Build Plan
 
-**Status:** Draft v0.1 for review · **Date:** 16 Nov 2026 · **Scope:** Stage 1 (test app)
+**Status:** Steps 1-7 code done locally (16 Nov 2026); Step 0 accounts and Step 8 test launch pending · **Date:** 16 Nov 2026 · **Scope:** Stage 1 (test app)
 
 What to build is in the [PRD](PRD.md); how it works is in [specs.md](specs.md). This plan sets the order of work. Each step ends with tests passing, a commit, and a Vercel preview for the owner to check.
 
 ---
+
+## Progress (16 Nov 2026)
+- Done: skeleton, data files (PVGIS table for 18 regions), calculation engine, solar check pages, installer guide, quote comparison (manual + AI extraction), opt-in sharing, feedback, about page; 57 automated tests pass; checked in a local browser including phone width.
+- To do: Vercel project and environment variables, Neon database, AI Gateway check, review of all values marked verify, engineer review of guide content, test users.
 
 ## Step 0 – Accounts and checks (no code)
 - Create the Vercel project linked to the private `HomeSolarPH` repo (Hobby plan).

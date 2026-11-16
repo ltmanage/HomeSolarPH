@@ -1,6 +1,6 @@
 # HomeSolarPH: Technical Specification
 
-**Status:** Draft v0.1 for review · **Date:** 16 Nov 2026 · **Scope:** Stage 1 (test app)
+**Status:** v0.1, Stage 1 implemented · **Date:** 16 Nov 2026 · **Scope:** Stage 1 (test app)
 
 This document gives the technical detail behind the [PRD](PRD.md). The build sequence is in [Build Plan.md](Build%20Plan.md). Values marked **(verify)** are placeholders to confirm before public testing.
 
@@ -22,7 +22,7 @@ Vercel ── FastAPI app (one Python serverless function)
                        └── optional AI calls ──►  Vercel AI Gateway (free monthly credits)
 
 Offline (developer machine, not at runtime):
-   tools/build_yield_table.py ──► NREL PVWatts v8 (fallback: PVGIS) ──► data/regions.json
+   tools/build_yield_table.py ──► EU JRC PVGIS 5.3 (cross-check: NREL/NLR PVWatts v8) ──► data/regions.json
 ```
 
 Design choices:
@@ -35,7 +35,7 @@ Design choices:
 
 | Layer | Choice | Notes |
 |---|---|---|
-| Language | Python 3.12 | Use the version Vercel's Python runtime supports (verify) |
+| Language | Python 3.12 | Pinned in `.python-version`; supported by Vercel's Python runtime |
 | Web framework | FastAPI + Jinja2 | Vercel detects FastAPI and runs it as a Python function |
 | Validation | Pydantic v2 | All inputs and outputs typed |
 | Frontend | Server-rendered HTML, vanilla JS, Chart.js (CDN, pinned version) | No build step; small CSS file, mobile-first |
@@ -50,7 +50,8 @@ Design choices:
 
 ```
 HomeSolarPH/
-├── app/
+├── index.py                 Vercel entry point (imports the FastAPI app)
+├── homesolar/
 │   ├── main.py              FastAPI app, routes, template setup
 │   ├── config.py            env vars, feature flags
 │   ├── models.py            Pydantic request/response models
@@ -82,7 +83,7 @@ One entry per administrative region (NCR, CAR, I, II, III, IV-A, MIMAROPA, V, VI
 
 ```json
 {
-  "source": "NREL PVWatts v8, dataset <name>, tilt 10°, losses 14%",
+  "source": "EU JRC PVGIS 5.3 (ERA5 weather data), tilt 10°, losses 14%",
   "generated": "2026-11-xx",
   "regions": [
     { "code": "NCR", "name": "National Capital Region",
@@ -92,7 +93,7 @@ One entry per administrative region (NCR, CAR, I, II, III, IV-A, MIMAROPA, V, VI
 }
 ```
 
-`tools/build_yield_table.py` calls PVWatts v8 with `system_capacity=1`, `array_type=1` (fixed roof mount), `module_type=0`, `losses=14`, the region coordinate, `tilt=10`, and azimuths 180/90/270/0 (flat: tilt 0). It records which dataset answered. If PVWatts returns no data for Philippine coordinates, it uses the PVGIS API (`PVcalc`, ERA5 database) instead and records that. The key `NREL_API_KEY` is used only by this tool, never by the deployed app.
+`tools/build_yield_table.py` calls the PVGIS 5.3 `PVcalc` API (ERA5 weather data, no key needed) with 1 kWp, losses 14%, the region coordinate, tilt 10° and aspects south/east/west/north (flat: tilt 0), and writes 12 monthly values per direction. Cross-check (16 Nov 2026): NREL PVWatts v8, now served at `developer.nlr.gov` after NREL became the National Laboratory of the Rockies, covers the Philippines with NSRDB Himawari data and gives about 5% less for Metro Manila (1,264 vs 1,328 kWh/kWp/yr); the conservative case (0.9x output) covers this. `--source pvwatts` rebuilds the table from PVWatts; this needs a free personal key in `NREL_API_KEY` (the shared DEMO_KEY is rate-limited after a few calls). The key is used only by this tool, never by the deployed app.
 
 ### 4.2 `data/defaults.json`
 All assumptions live here, each with a value, a short label shown to users, and an `as_of` date. Users can override most of them in the assumptions panel.
@@ -114,7 +115,7 @@ All assumptions live here, each with a value, a short label shown to users, and 
 
 ## 5. Calculation model (F1)
 
-All functions live in `app/calc/solar.py`, take Pydantic models, return Pydantic models, and are deterministic.
+All functions live in `homesolar/calc/solar.py`, take Pydantic models, return Pydantic models, and are deterministic.
 
 **Inputs normalized**
 - `kwh_month` = user kWh, else `bill / rate_default[provider]` (flag "estimated from bill").
@@ -150,13 +151,13 @@ All functions live in `app/calc/solar.py`, take Pydantic models, return Pydantic
 
 ## 6. Quote comparison (F3)
 
-### 6.1 Intake (`app/quotes/intake.py`)
+### 6.1 Intake (`homesolar/quotes/intake.py`)
 - Accept PDF, JPG, PNG, HEIC→JPG (browser converts); max 4 files per comparison, one file per request.
 - Vercel request bodies are limited (about 4.5 MB), so the browser downsizes images to ~1600 px longest side, JPEG quality 0.8, before upload; server rejects > 4 MB.
 - Files are read into memory, never written to disk or storage, and dropped after the response.
 - PDF with a text layer → extract text with `pypdf`, then send **text only** to AI (cheaper). Scanned PDF or photo → send the image to AI (first 3 pages max).
 
-### 6.2 Extraction (`app/quotes/ai_extract.py`)
+### 6.2 Extraction (`homesolar/quotes/ai_extract.py`)
 - Calls the Vercel AI Gateway OpenAI-compatible chat endpoint (`https://ai-gateway.vercel.sh/v1`) with a vision-capable model from the free tier (`AI_MODEL`, chosen at build time). On Vercel the function authenticates with the project's OIDC token; locally with `AI_GATEWAY_API_KEY`.
 - Prompt asks for JSON matching the `QuoteFields` schema, `null` for anything not stated, and never to guess or calculate. Response validated with Pydantic; invalid JSON → one retry, then manual entry.
 - Installer name is extracted only for display on the user's screen; it is excluded from anything stored.
@@ -165,7 +166,7 @@ All functions live in `app/calc/solar.py`, take Pydantic models, return Pydantic
 
 `QuoteFields`: label (user-editable, e.g. "Quote A"), installer_name (display only), system_type, kwp, total_price_php, vat_included, panel_brand, panel_model, panel_watt, panel_qty, inverter_brand, inverter_type, inverter_kw, battery_brand, battery_kwh, mounting, inclusions{net_metering, permits, electrical_upgrade, monitoring, installation, after_sales}, warranty_years{panel_product, panel_performance, inverter, battery, workmanship}, deposit_pct, timeline_weeks, validity_days, notes.
 
-### 6.3 Normalization and flags (`app/calc/quotes.py`)
+### 6.3 Normalization and flags (`homesolar/calc/quotes.py`)
 - Consistency checks: `panel_watt × panel_qty / 1000` vs stated kWp (> 5% difference → flag).
 - `price_per_wp` = total incl. VAT / (kWp × 1000). VAT-exclusive prices are grossed up at 12% and labelled.
 - Expected yearly generation from the user's region/direction (or region default) → `price_per_annual_kwh`, savings and payback using section 5.
@@ -243,7 +244,7 @@ Rules: no names, addresses, city/barangay, contact details, IP addresses, instal
 
 ## 9. Explanations and text
 
-- `app/explain.py` builds explanations from templates keyed on the result (limiting factor, verdict band, warnings, net-metering choice). This always works and costs nothing.
+- `homesolar/explain.py` builds explanations from templates keyed on the result (limiting factor, verdict band, warnings, net-metering choice). This always works and costs nothing.
 - Optional AI rewording (behind `AI_EXPLAIN_ENABLED`) receives only the computed result object and is instructed not to change or add numbers; output is checked so every number in it appears in the result, otherwise the template text is used.
 
 ## 10. Configuration
