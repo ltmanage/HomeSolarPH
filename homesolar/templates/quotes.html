@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Compare quotes{% endblock %}
+{% block content %}
+<h1>Compare installer quotes</h1>
+<p class="lead">Add up to 4 quotes. Upload a PDF or photo and we'll read the key figures{% if not settings.ai_enabled %} (automatic reading is off in this version, so you'll type them){% endif %}. You check and correct every figure before comparing.</p>
+<p class="muted">Files are read once and never stored. Installer names stay on your screen only.</p>
+
+<section id="context" class="note">
+  <p id="ctx-has" hidden>Using your solar check figures (<span id="ctx-text"></span>) for savings and payback. <a href="/check">Change</a></p>
+  <div id="ctx-none">
+    <p>For savings and payback per quote, <a href="/check">run the solar check first</a>. Or pick your region to compare prices only:</p>
+    <label>Region
+      <select id="region">{% for code, name in regions %}<option value="{{ code }}">{{ name }}</option>{% endfor %}</select>
+    </label>
+  </div>
+</section>
+
+<section>
+  <div class="upload">
+    <label class="btn primary" for="file">Upload a quote (PDF or photo)</label>
+    <input type="file" id="file" accept="application/pdf,image/jpeg,image/png,image/webp" hidden>
+    <button class="btn" id="add-manual">Type a quote in</button>
+    <span id="upload-status" class="muted" aria-live="polite"></span>
+  </div>
+  <div id="quote-cards"></div>
+</section>
+
+<section class="actions">
+  <button class="btn primary" id="compare" disabled>Compare quotes</button>
+</section>
+
+<section id="result" hidden>
+  <h2>Comparison</h2>
+  <div class="table-wrap"><table id="cmp-table" class="cmp"></table></div>
+  <div id="cmp-flags"></div>
+  <ul id="cmp-notes" class="muted"></ul>
+  <p><a href="/guide/questions">Full list of questions to ask</a> · <a href="/guide/red-flags">Red flags</a></p>
+  <section class="actions">
+    <button class="btn" id="print">Print</button>
+  </section>
+</section>
+
+{% include "_share.html" %}
+{% include "_feedback.html" %}
+
+<template id="quote-tpl">
+  <article class="qcard">
+    <header><input class="qlabel" data-f="label" maxlength="40"><span class="src"></span><button class="btn small remove" type="button">Remove</button></header>
+    <p class="qmsg muted"></p>
+    <details class="qtext" hidden><summary>Text found in the file (to help you type)</summary><pre></pre></details>
+    <div class="grid">
+      <label>Installer (shown only to you)<input data-f="installer_name" maxlength="120"></label>
+      <label>System type<select data-f="system_type"><option value="unknown">Not stated</option><option value="grid_tie">Grid-tie</option><option value="hybrid">Hybrid (with battery)</option><option value="off_grid">Off-grid</option></select></label>
+      <label>System size (kWp)<input data-f="kwp" type="number" step="any"></label>
+      <label>Total price (PHP)<input data-f="total_price_php" type="number" step="any"></label>
+      <label>VAT<select data-f="vat_included" data-bool><option value="">Not stated</option><option value="true">Included</option><option value="false">Not included</option></select></label>
+      <label>Panel brand<input data-f="panel_brand" maxlength="60"></label>
+      <label>Panel model<input data-f="panel_model" maxlength="80"></label>
+      <label>Panel watts<input data-f="panel_watt" type="number" step="1"></label>
+      <label>Number of panels<input data-f="panel_qty" type="number" step="1"></label>
+      <label>Inverter brand<input data-f="inverter_brand" maxlength="60"></label>
+      <label>Inverter type<input data-f="inverter_type" maxlength="60"></label>
+      <label>Inverter size (kW)<input data-f="inverter_kw" type="number" step="any"></label>
+      <label>Battery brand<input data-f="battery_brand" maxlength="60"></label>
+      <label>Battery (kWh)<input data-f="battery_kwh" type="number" step="any"></label>
+      <label>Mounting<input data-f="mounting" maxlength="80"></label>
+      <label>Deposit before installation (%)<input data-f="deposit_pct" type="number" step="any"></label>
+      <label>Timeline (weeks)<input data-f="timeline_weeks" type="number" step="any"></label>
+      <label>Quote valid for (days)<input data-f="validity_days" type="number" step="1"></label>
+    </div>
+    <fieldset class="incl"><legend>Included in the price?</legend>
+      <div class="grid">
+        {% for k, l in [("net_metering","Net-metering application"),("permits","Permits"),("electrical_upgrade","Electrical upgrades"),("monitoring","Monitoring app"),("installation","Delivery and installation"),("after_sales","After-sales visits")] %}
+        <label>{{ l }}<select data-f="inclusions.{{ k }}" data-bool><option value="">Not stated</option><option value="true">Yes</option><option value="false">No</option></select></label>
+        {% endfor %}
+      </div>
+    </fieldset>
+    <fieldset class="incl"><legend>Warranties (years)</legend>
+      <div class="grid">
+        {% for k, l in [("panel_product","Panel product"),("panel_performance","Panel performance"),("inverter","Inverter"),("battery","Battery"),("workmanship","Workmanship")] %}
+        <label>{{ l }}<input data-f="warranty_years.{{ k }}" type="number" step="1"></label>
+        {% endfor %}
+      </div>
+    </fieldset>
+  </article>
+</template>
+{% endblock %}
+{% block scripts %}
+<script src="/static/common.js?v={{ version }}"></script>
+<script src="/static/quotes.js?v={{ version }}"></script>
+{% endblock %}

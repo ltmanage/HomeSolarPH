@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}HomeSolarPH{% endblock %} · HomeSolarPH</title>
+<meta name="description" content="A free, neutral guide for Philippine homeowners deciding whether rooftop solar makes sense.">
+<link rel="stylesheet" href="/static/style.css?v={{ version }}">
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/"><img src="/static/icon.svg" alt="" width="24" height="24"> HomeSolarPH</a>
+  <nav>
+    <a href="/check">Solar check</a>
+    <a href="/quotes">Compare quotes</a>
+    <a href="/guide">Installer guide</a>
+    <a href="/about">About</a>
+  </nav>
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+<footer>
+  <p><strong>Test version.</strong> Estimates are indicative only, not a quotation. A site survey and a formal quote from a qualified installer are needed before you buy.</p>
+  <p>Neutral and free: we do not sell systems, recommend installers or earn commissions. <a href="/about">How this app works</a> · Assumptions as of {{ as_of() }} · v{{ version }}</p>
+</footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

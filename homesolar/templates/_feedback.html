@@ -1,0 +1,12 @@
+<section class="feedback" id="feedback" data-page="{{ request.url.path }}">
+  <p><strong>Was this useful?</strong>
+    <button class="btn small" data-useful="true">Yes</button>
+    <button class="btn small" data-useful="false">No</button></p>
+  <div id="fb-more" hidden>
+    <label>Anything we should improve? (optional, please don't include personal details)
+      <textarea id="fb-comment" maxlength="500" rows="3"></textarea></label>
+    <input type="text" id="fb-website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <button class="btn small" id="fb-send">Send</button>
+  </div>
+  <p id="fb-thanks" class="muted" hidden>Thank you.</p>
+</section>

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Is rooftop solar worth it for your home?{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Is rooftop solar worth it for your home?</h1>
+  <p class="lead">A free, neutral check for Philippine homeowners. Use your electricity bill to see a rough system size, savings and payback, then compare installer quotes with confidence.</p>
+  <div class="cta">
+    <a class="btn primary" href="/check">Start the solar check</a>
+    <a class="btn" href="/quotes">Compare quotes I have</a>
+  </div>
+</section>
+
+<section class="cards">
+  <a class="card" href="/check">
+    <h2>1. Solar check</h2>
+    <p>About 3 minutes. Enter your region, bill and how you use power. See a size range, yearly savings and payback range, with every assumption visible.</p>
+  </a>
+  <a class="card" href="/guide">
+    <h2>2. Installer guide</h2>
+    <p>Questions to ask, red flags to watch for, and the steps from quote to net metering.</p>
+  </a>
+  <a class="card" href="/quotes">
+    <h2>3. Compare quotes</h2>
+    <p>Upload up to 4 quotes. We read the key figures, you confirm them, and we show the differences and what to ask.</p>
+  </a>
+</section>
+
+<section class="note">
+  <h2>What you need</h2>
+  <ul>
+    <li>One or more recent electricity bills: the amount (PHP) and the kWh used.</li>
+    <li>A rough idea of your roof: direction it faces, shading, and size if you know it.</li>
+    <li>Installer quotes, if you already have them (PDF or photo).</li>
+  </ul>
+  <p class="muted">We don't ask for your name, address or contact details. Nothing is saved unless you choose to share anonymous figures.</p>
+</section>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% if settings.sharing_enabled %}
+<section class="share" id="share">
+  <h2>Help other homeowners (optional)</h2>
+  <p>Share your <strong>anonymous</strong> figures to help build fair price and savings benchmarks. We store your region, bill and usage figures, home and roof answers, and confirmed quote details. We never store names, addresses, your city, contact details, installer names or uploaded files.</p>
+  <label class="check"><input type="checkbox" id="share-consent"> I agree to share these anonymous figures.</label>
+  <button class="btn" id="share-btn" disabled>Share anonymously</button>
+  <p id="share-result" class="muted" aria-live="polite"></p>
+</section>
+{% endif %}

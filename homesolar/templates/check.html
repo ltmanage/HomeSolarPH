@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Solar check{% endblock %}
+{% macro opt(name, value, label) %}<option value="{{ value }}" {% if values.get(name) == value %}selected{% endif %}>{{ label }}</option>{% endmacro %}
+{% block content %}
+<h1>Solar check</h1>
+<p class="lead">Use figures from your electricity bill. Fields marked * are required.</p>
+{% if errors %}<div class="alert"><strong>Please check:</strong><ul>{% for m in errors %}<li>{{ m }}</li>{% endfor %}</ul></div>{% endif %}
+<form method="post" action="/check" class="form" id="check-form">
+  <fieldset>
+    <legend>Your area and bill</legend>
+    <label>Region *
+      <select name="region" required>
+        <option value="">Choose your region</option>
+        {% for code, name in regions %}{{ opt("region", code, name) }}{% endfor %}
+      </select>
+    </label>
+    <label>Electricity provider *
+      <select name="provider" required>
+        {{ opt("provider", "meralco", "Meralco") }}
+        {{ opt("provider", "private_du", "Other private utility (e.g. in Cebu, Davao)") }}
+        {{ opt("provider", "coop", "Electric cooperative") }}
+      </select>
+    </label>
+    <div class="row">
+      <label>Monthly bill (PHP) *
+        <input name="bill_php" inputmode="decimal" required placeholder="e.g. 8,000" value="{{ values.get('bill_php', '') }}">
+        <small>Average of recent months if you can.</small>
+      </label>
+      <label>Monthly use (kWh)
+        <input name="kwh_month" inputmode="decimal" placeholder="e.g. 520" value="{{ values.get('kwh_month', '') }}">
+        <small>Shown on your bill. Recommended.</small>
+      </label>
+    </div>
+    <label>When do you use most electricity? *
+      <select name="daytime">
+        {{ opt("daytime", "mixed", "Mixed: both day and evening") }}
+        {{ opt("daytime", "evening", "Mostly evening and night (out during the day)") }}
+        {{ opt("daytime", "daytime", "Mostly daytime (work from home, aircon in the day)") }}
+      </select>
+    </label>
+    <label>Net metering *
+      <select name="net_metering">
+        {{ opt("net_metering", "yes", "I plan to apply (send extra power to the grid for bill credits)") }}
+        {{ opt("net_metering", "unsure", "Not sure") }}
+        {{ opt("net_metering", "no", "No") }}
+      </select>
+    </label>
+  </fieldset>
+
+  <details class="more" {% if values.get('roof_area_m2') or values.get('budget_php') %}open{% endif %}>
+    <summary>More details about your home (optional, improves the estimate)</summary>
+    <fieldset>
+      <div class="row">
+        <label>Home type
+          <select name="home_type">
+            {{ opt("home_type", "house", "House") }}{{ opt("home_type", "townhouse", "Townhouse") }}{{ opt("home_type", "other", "Other") }}
+          </select>
+        </label>
+        <label>Roof type
+          <select name="roof_type">
+            {{ opt("roof_type", "unsure", "Not sure") }}{{ opt("roof_type", "metal", "Metal sheet") }}{{ opt("roof_type", "concrete", "Concrete (flat)") }}{{ opt("roof_type", "tile", "Tile") }}{{ opt("roof_type", "other", "Other") }}
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <label>Main roof direction
+          <select name="direction">
+            {{ opt("direction", "unsure", "Not sure") }}{{ opt("direction", "south", "South") }}{{ opt("direction", "east", "East") }}{{ opt("direction", "west", "West") }}{{ opt("direction", "north", "North") }}{{ opt("direction", "flat", "Flat roof") }}
+          </select>
+        </label>
+        <label>Shading on the roof
+          <select name="shading">
+            {{ opt("shading", "unsure", "Not sure") }}{{ opt("shading", "none", "None") }}{{ opt("shading", "light", "Light (a little in early morning or late afternoon)") }}{{ opt("shading", "moderate", "Moderate (part of the day)") }}{{ opt("shading", "heavy", "Heavy (trees or buildings most of the day)") }}
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <label>Usable roof area (m²)
+          <input name="roof_area_m2" inputmode="decimal" placeholder="e.g. 40" value="{{ values.get('roof_area_m2', '') }}">
+          <small>Sunny area free of tanks and vents. Leave blank if unsure.</small>
+        </label>
+        <label>Budget (PHP)
+          <input name="budget_php" inputmode="decimal" placeholder="e.g. 300,000" value="{{ values.get('budget_php', '') }}">
+          <small>Leave blank for no limit.</small>
+        </label>
+      </div>
+    </fieldset>
+  </details>
+  <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+  <button class="btn primary" type="submit">See my estimate</button>
+  <p class="muted">Nothing you enter here is saved.</p>
+</form>
+{% endblock %}

@@ -1,0 +1,73 @@
+{
+ "as_of": "2026-11-16",
+ "note": "Starting assumptions for the test app. Values marked verify must be checked before public testing.",
+ "rate_per_kwh": {
+  "label": "Electricity rate used when your kWh is not entered (PHP per kWh)",
+  "values": {"meralco": 15.06, "private_du": 14.0, "coop": 13.0},
+  "source": "Meralco typical-household rate, Oct 2026 (news reports of Meralco's rate advisory). Other provider types: rough estimates - enter your own bill figures.",
+  "verify": true
+ },
+ "avoidable_share": {
+  "label": "Share of the per-kWh rate you avoid for each solar kWh you use yourself",
+  "value": 0.95,
+  "source": "Assumption: most bill components are charged per kWh; some fixed charges remain.",
+  "verify": true
+ },
+ "export_credit_per_kwh": {
+  "label": "Net-metering credit for each kWh sent to the grid (PHP per kWh)",
+  "values": {"meralco": 8.0, "private_du": 7.5, "coop": 7.0},
+  "source": "Assumption: net-metering exports are credited at roughly the utility's blended generation charge.",
+  "verify": true
+ },
+ "self_use_share": {
+  "label": "Share of your electricity used during sunny hours",
+  "values": {"evening": 0.3, "mixed": 0.5, "daytime": 0.7},
+  "source": "Assumption by usage pattern."
+ },
+ "shading_factor": {
+  "label": "Output kept after shading",
+  "values": {"none": 1.0, "light": 0.95, "moderate": 0.85, "heavy": 0.7, "unsure": 0.9},
+  "source": "Assumption."
+ },
+ "m2_per_kwp": {
+  "label": "Roof area needed per kW of panels, including spacing (m2)",
+  "value": 6.5,
+  "source": "Assumption for modern 450-600 W panels with access space.",
+  "verify": true
+ },
+ "cost_per_kwp_php": {
+  "label": "Installed cost per kW, grid-tie (PHP)",
+  "low": 44000, "high": 60000,
+  "by_type": {"grid_tie": [44000, 60000], "hybrid": [70000, 110000], "off_grid": [80000, 130000]},
+  "source": "Grid-tie: installer price examples (about PHP 44-52 per watt) and Ember's PHP 60 per watt model assumption, 2026. Hybrid and off-grid: rough assumptions.",
+  "verify": true
+ },
+ "tariff_escalation": {
+  "label": "Yearly increase in electricity rates",
+  "low": 0.0, "high": 0.04,
+  "source": "Assumption."
+ },
+ "degradation": {"label": "Panel output loss per year", "value": 0.005, "source": "Typical panel performance warranty."},
+ "inverter_replacement": {
+  "label": "Inverter replacement",
+  "year": 12, "share_of_cost": 0.15,
+  "source": "Assumption: one replacement within 25 years.",
+  "verify": true
+ },
+ "fixed_charges_php": {
+  "label": "Part of the monthly bill that solar cannot reduce (PHP)",
+  "value": 100,
+  "source": "Assumption: minimum and fixed charges.",
+  "verify": true
+ },
+ "yield_case": {"optimistic": 1.05, "conservative": 0.9},
+ "verdict_bands": {"strong": 6, "reasonable": 9},
+ "quote_flags": {
+  "low_price_margin": 0.2,
+  "oversize_ratio": 1.3,
+  "min_workmanship_years": 2,
+  "max_deposit_pct": 50,
+  "size_mismatch_tolerance": 0.05,
+  "vat_rate": 0.12
+ }
+}
