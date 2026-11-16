@@ -96,31 +96,42 @@
   document.getElementById("add-manual").addEventListener("click", () => addCard({}, "manual", "Type the key figures from your quote. Leave blank anything it doesn't state."));
 
   function td(text, cls) { const c = document.createElement("td"); c.textContent = text; if (cls) c.className = cls; return c; }
+  const rng = (a, b, f) => (a === null || a === undefined) ? null : (b === null || b === undefined || a === b) ? f(a) : `${f(a)} – ${f(b)}`;
+  const perW = (x) => "PHP " + HSP.num(x, 1);
+  const yrs = (x) => HSP.num(x, 1);
   function renderResult(res) {
     const t = document.getElementById("cmp-table");
     t.replaceChildren();
+    const e = res.estimate;
     const head = document.createElement("tr");
     head.appendChild(document.createElement("th"));
+    const eh = document.createElement("th"); eh.className = "est"; eh.textContent = "App estimate"; head.appendChild(eh);
     res.quotes.forEach((q) => { const th = document.createElement("th"); th.textContent = q.label + (q.installer_name ? ` (${q.installer_name})` : ""); head.appendChild(th); });
     t.appendChild(head);
+    const needCheck = e.has_solar_check ? "-" : "Run the solar check";
+    // [label, app-estimate value, value for each quote]
     const rows = [
-      ["System size (kWp)", (q) => HSP.num(q.kwp, 2)],
-      ["Size from panels listed (kWp)", (q) => HSP.num(q.kwp_from_panels, 2)],
-      ["Price incl. VAT", (q) => HSP.php(q.price_incl_vat_php)],
-      ["Price per watt", (q) => q.price_per_wp === null ? "-" : "PHP " + HSP.num(q.price_per_wp, 1)],
-      ["Expected output per year (kWh)", (q) => HSP.num(q.yearly_gen_kwh, 0)],
-      ["Price per yearly kWh", (q) => q.price_per_yearly_kwh === null ? "-" : "PHP " + HSP.num(q.price_per_yearly_kwh, 1)],
-      ["Yearly savings", (q) => q.yearly_savings_low === null ? "Run the solar check" : `${HSP.php(q.yearly_savings_low)} – ${HSP.php(q.yearly_savings_high)}`],
-      ["Payback (years)", (q) => q.payback_low === null ? "-" : `${HSP.num(q.payback_low)} – ${q.payback_high === null ? "25+" : HSP.num(q.payback_high)}`],
-      ["Panel + inverter + workmanship warranty (years)", (q) => q.warranty_total_years ?? "-"],
-      ["Points to check", (q) => String(q.flags.filter((f) => f.level === "check").length)],
+      ["System size (kWp)", rng(e.size_low_kwp, e.size_high_kwp, (x) => HSP.num(x, 1)) ?? needCheck, (q) => HSP.num(q.kwp, 2)],
+      ["Size from panels listed (kWp)", "-", (q) => HSP.num(q.kwp_from_panels, 2)],
+      ["Price incl. VAT", rng(e.cost_low_php, e.cost_high_php, HSP.php) ?? needCheck, (q) => HSP.php(q.price_incl_vat_php)],
+      ["Price per watt", rng(e.price_per_wp_low, e.price_per_wp_high, perW) ?? "-", (q) => q.price_per_wp === null ? "-" : perW(q.price_per_wp)],
+      ["Expected output per year (kWh)", e.yearly_gen_kwh === null ? needCheck : HSP.num(e.yearly_gen_kwh, 0), (q) => HSP.num(q.yearly_gen_kwh, 0)],
+      ["Price per yearly kWh", rng(e.price_per_yearly_kwh_low, e.price_per_yearly_kwh_high, perW) ?? "-", (q) => q.price_per_yearly_kwh === null ? "-" : perW(q.price_per_yearly_kwh)],
+      ["Yearly savings", rng(e.yearly_savings_low, e.yearly_savings_high, HSP.php) ?? needCheck,
+        (q) => q.yearly_savings_low === null ? "Run the solar check" : `${HSP.php(q.yearly_savings_low)} – ${HSP.php(q.yearly_savings_high)}`],
+      ["Payback (years)", e.payback_low === null ? needCheck : `${yrs(e.payback_low)} – ${e.payback_high === null ? "25+" : yrs(e.payback_high)}`,
+        (q) => q.payback_low === null ? "-" : `${yrs(q.payback_low)} – ${q.payback_high === null ? "25+" : yrs(q.payback_high)}`],
+      ["Panel + inverter + workmanship warranty (years)", "-", (q) => q.warranty_total_years ?? "-"],
+      ["Points to check", "-", (q) => String(q.flags.filter((f) => f.level === "check").length)],
     ];
-    rows.forEach(([label, fn]) => {
+    rows.forEach(([label, est, fn]) => {
       const tr = document.createElement("tr");
       const th = document.createElement("th"); th.textContent = label; tr.appendChild(th);
+      tr.appendChild(td(est, "est"));
       res.quotes.forEach((q) => tr.appendChild(td(fn(q))));
       t.appendChild(tr);
     });
+    document.getElementById("cmp-basis").textContent = "App estimate: " + e.basis;
     const fl = document.getElementById("cmp-flags");
     fl.replaceChildren();
     res.quotes.forEach((q) => {
@@ -150,6 +161,8 @@
       lastCompared = qs;
     } catch (e) { status.textContent = e.message; }
   });
+
+  HSP.guardLeave({ hasData: () => quotes.length > 0, askInstallers: true });
 
   HSP.setupShare(() => lastCompared && ({
     kind: "quotes", solar: solar || null, quotes: lastCompared,

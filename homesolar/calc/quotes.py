@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from ..config import defaults, region_map
-from ..models import CompareRequest, CompareResult, Flag, QuoteFields, QuoteResult
+from ..models import CompareRequest, CompareResult, EstimateColumn, Flag, QuoteFields, QuoteResult
 from .solar import estimate, monthly_yield, payback
 
 INCLUSION_LABELS = {
@@ -117,4 +117,28 @@ def compare(req: CompareRequest) -> CompareResult:
         raise ValueError(f"Unknown region: {region}")
     results = [analyse(q, sum(Y), ctx) for q in req.quotes]
     notes.append("This comparison highlights differences and gaps. It does not rank quotes or recommend an installer.")
-    return CompareResult(region_name=region_map()[region]["name"], quotes=results, notes=notes)
+    return CompareResult(region_name=region_map()[region]["name"], estimate=app_estimate(req, sum(Y)), quotes=results, notes=notes)
+
+
+def app_estimate(req: CompareRequest, yearly_yield: float) -> EstimateColumn:
+    """The app's own figures, shown as the first column next to the quotes."""
+    lo, hi = defaults()["cost_per_kwp_php"]["by_type"]["grid_tie"]
+    if not req.solar:
+        return EstimateColumn(
+            basis="Typical grid-tie prices used by this app. Run the solar check for size, savings and payback.",
+            price_per_wp_low=lo / 1000, price_per_wp_high=hi / 1000,
+            price_per_yearly_kwh_low=round(lo / yearly_yield, 1), price_per_yearly_kwh_high=round(hi / yearly_yield, 1))
+    e = estimate(req.solar)
+    gen = e.yearly_gen_kwh
+    return EstimateColumn(
+        has_solar_check=True,
+        basis=f"From your solar check: {e.size_kwp:g} kWp in {e.region_name}, cost range PHP {lo/1000:.0f}-{hi/1000:.0f} per watt.",
+        size_low_kwp=e.size_low_kwp, size_high_kwp=e.size_high_kwp, size_kwp=e.size_kwp,
+        cost_low_php=e.optimistic.cost_php, cost_high_php=e.conservative.cost_php,
+        price_per_wp_low=round(e.optimistic.cost_php / (e.size_kwp * 1000), 1),
+        price_per_wp_high=round(e.conservative.cost_php / (e.size_kwp * 1000), 1),
+        yearly_gen_kwh=gen,
+        price_per_yearly_kwh_low=round(e.optimistic.cost_php / gen, 1) if gen else None,
+        price_per_yearly_kwh_high=round(e.conservative.cost_php / gen, 1) if gen else None,
+        yearly_savings_low=e.conservative.yearly_savings_php, yearly_savings_high=e.optimistic.yearly_savings_php,
+        payback_low=e.optimistic.payback_years, payback_high=e.conservative.payback_years)

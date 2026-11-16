@@ -151,8 +151,29 @@ class QuoteResult(BaseModel):
     flags: list[Flag]
 
 
+class EstimateColumn(BaseModel):
+    """The app's own estimate, shown as the first column of the comparison."""
+    has_solar_check: bool = False
+    basis: str
+    size_low_kwp: float | None = None
+    size_high_kwp: float | None = None
+    size_kwp: float | None = None
+    cost_low_php: float | None = None
+    cost_high_php: float | None = None
+    price_per_wp_low: float | None = None
+    price_per_wp_high: float | None = None
+    yearly_gen_kwh: float | None = None
+    price_per_yearly_kwh_low: float | None = None
+    price_per_yearly_kwh_high: float | None = None
+    yearly_savings_low: float | None = None
+    yearly_savings_high: float | None = None
+    payback_low: float | None = None
+    payback_high: float | None = None
+
+
 class CompareResult(BaseModel):
     region_name: str
+    estimate: EstimateColumn
     quotes: list[QuoteResult]
     notes: list[str]
 

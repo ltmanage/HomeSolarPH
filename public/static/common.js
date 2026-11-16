@@ -65,10 +65,71 @@ const HSP = (() => {
     });
   }
 
+  // ---------- dialogs: "pending feature" and leaving the page ----------
+  function dialog(title, paragraphs, buttons) {
+    const d = document.createElement("dialog");
+    d.className = "modal";
+    const h = document.createElement("h2"); h.textContent = title; d.appendChild(h);
+    paragraphs.forEach((t) => { const p = document.createElement("p"); p.textContent = t; d.appendChild(p); });
+    const row = document.createElement("div"); row.className = "modal-actions";
+    buttons.forEach(([label, primary, fn]) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "btn" + (primary ? " primary" : "");
+      b.textContent = label;
+      b.addEventListener("click", () => { d.close(); d.remove(); if (fn) fn(); });
+      row.appendChild(b);
+    });
+    d.appendChild(row);
+    d.addEventListener("cancel", () => d.remove());   // Esc key
+    document.body.appendChild(d);
+    d.showModal();
+    return d;
+  }
+
+  function pendingFeature(onContinue) {
+    const buttons = [["OK", true, null]];
+    if (onContinue) buttons.push(["Continue leaving", false, onContinue]);
+    dialog("Pending feature", [
+      "A list of accredited installers in your area is not available yet in this test version.",
+      "It is planned for a later version. Thank you for your interest.",
+    ], buttons);
+  }
+
+  let leaving = false;
+  /** Warn before leaving. opts.hasData(): unsaved work on the page; opts.askInstallers: offer the installer list once. */
+  function guardLeave(opts) {
+    const asked = () => store.get("hsp_installers_asked") === true;
+    window.addEventListener("beforeunload", (e) => {
+      if (leaving || !opts.hasData()) return;
+      e.preventDefault(); e.returnValue = "";   // browsers show their own "Leave site?" message
+    });
+    document.addEventListener("click", (e) => {
+      const a = e.target.closest("a[href]");
+      if (!a || leaving || e.defaultPrevented || e.ctrlKey || e.metaKey || e.shiftKey || a.target === "_blank") return;
+      const url = new URL(a.href, location.href);
+      if (url.origin !== location.origin || (url.pathname === location.pathname && url.hash)) return;
+      const ask = opts.askInstallers && !asked();
+      const data = opts.hasData();
+      if (!ask && !data) return;
+      e.preventDefault();
+      const go = () => { leaving = true; location.href = url.href; };
+      const lost = data ? ["If you leave, the quotes and comparison on this page will be lost (nothing is saved)."] : [];
+      if (ask) {
+        dialog("Before you go", ["Would you like a list of accredited installers in your area?", ...lost], [
+          ["Yes, show me", true, () => { store.set("hsp_installers_asked", true); pendingFeature(go); }],
+          ["No, leave page", false, () => { store.set("hsp_installers_asked", true); go(); }],
+          ["Stay on this page", false, null],
+        ]);
+      } else {
+        dialog("Leave this page?", lost, [["Stay on this page", true, null], ["Leave page", false, go]]);
+      }
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     const p = document.getElementById("print");
     if (p) p.addEventListener("click", () => window.print());
+    document.querySelectorAll("[data-installers]").forEach((b) => b.addEventListener("click", () => pendingFeature(null)));
     setupFeedback(); setupDelete();
   });
-  return { postJSON, php, num, store, setupShare };
+  return { postJSON, php, num, store, setupShare, guardLeave, pendingFeature };
 })();

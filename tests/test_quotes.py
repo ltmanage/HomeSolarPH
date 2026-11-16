@@ -148,3 +148,13 @@ def test_ai_error_bodies_never_crash(monkeypatch, body):
     with pytest.raises(ai_extract.ExtractionUnavailable) as e:
         ai_extract.extract("pdf", b"", "Quotation text " * 30, "Quote A", client=client)
     assert "400" in str(e.value)
+
+
+def test_estimate_column_with_and_without_solar_check():
+    with_check = compare(CompareRequest(quotes=[good_quote()], solar=SOLAR)).estimate
+    assert with_check.has_solar_check and with_check.size_low_kwp <= with_check.size_kwp <= with_check.size_high_kwp
+    assert with_check.cost_low_php < with_check.cost_high_php
+    assert with_check.price_per_wp_low == 44.0 and with_check.price_per_wp_high == 60.0
+    assert with_check.yearly_savings_low <= with_check.yearly_savings_high
+    no_check = compare(CompareRequest(quotes=[good_quote()], region="NCR")).estimate
+    assert not no_check.has_solar_check and no_check.size_kwp is None and no_check.price_per_wp_low == 44.0

@@ -90,3 +90,11 @@ def test_stored_rows_contain_only_allowed_fields():
     flat = str(crow) + str(qrows)
     assert "Sample Solar" not in flat and "0917" not in flat
     assert crow["roof_area_band"] == "40-60 m2" and crow["budget_band"] == "200000-300000 PHP"
+
+
+def test_home_privacy_text_and_installer_prompt():
+    home = client.get("/").text
+    assert "unless you request a referral to our accredited installers" in home
+    assert "only if you agree specifically" in home
+    r = client.post("/check", data=FORM)
+    assert "data-installers" in r.text

@@ -87,5 +87,6 @@
   });
 
   HSP.setupShare(() => ({ kind: "check", solar: inp }));
+  HSP.guardLeave({ hasData: () => false, askInstallers: true });
   drawChart();
 })();

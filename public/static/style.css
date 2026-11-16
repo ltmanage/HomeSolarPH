@@ -89,13 +89,21 @@ details.more summary { cursor: pointer; font-weight: 600; color: var(--brand); p
 table.cmp { border-collapse: collapse; width: 100%; background: var(--card); font-size: .92rem; }
 table.cmp th, table.cmp td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
 table.cmp tr:first-child th { background: var(--brand); color: var(--brand-ink); }
+table.cmp td.est { background: var(--soft-ok); }
+table.cmp tr:first-child th.est { background: var(--ok); }
 ul.flags { padding-left: 18px; }
 ul.flags li { margin: 6px 0; }
 ul.flags em { display: block; color: var(--muted); }
 .flag-check span { font-weight: 600; }
 
+dialog.modal { max-width: 440px; width: calc(100% - 32px); border: 1px solid var(--line); border-radius: 12px;
+  background: var(--card); color: var(--ink); padding: 16px 20px; }
+dialog.modal::backdrop { background: rgba(0, 0, 0, .45); }
+dialog.modal h2 { margin-top: 0; }
+.modal-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+
 @media print {
-  header.top, footer, .actions, .feedback, .share, .upload, .btn, #assumptions .btn { display: none !important; }
+  header.top, footer, .actions, .feedback, .share, .installers, .upload, .btn, #assumptions .btn { display: none !important; }
   body { background: #fff; color: #000; }
   main { max-width: none; padding: 0; }
 }
