@@ -8,7 +8,8 @@ What to build is in the [PRD](PRD.md); how it works is in [specs.md](specs.md). 
 
 ## Progress (16 Nov 2026)
 - Done: skeleton, data files (PVGIS table for 18 regions), calculation engine, solar check pages, installer guide, quote comparison (manual + AI extraction), opt-in sharing, feedback, about page; 57 automated tests pass; checked in a local browser including phone width.
-- To do: Vercel project and environment variables, Neon database, AI Gateway check, review of all values marked verify, engineer review of guide content, test users.
+- CI/CD: GitHub Actions workflow (lint, tests, requirements check, smoke test; Vercel preview and production deploys after checks pass) and Dependabot set up.
+- To do: Vercel project, the four GitHub secrets/variables for deploys, Neon database, AI Gateway check, review of all values marked verify, engineer review of guide content, test users.
 
 ## Step 0 – Accounts and checks (no code)
 - Create the Vercel project linked to the private `HomeSolarPH` repo (Hobby plan).

@@ -1,10 +1,9 @@
 """Quote normalization and neutral flags. Never ranks quotes."""
 from __future__ import annotations
-from typing import Optional
 
 from ..config import defaults, region_map
 from ..models import CompareRequest, CompareResult, Flag, QuoteFields, QuoteResult
-from .solar import monthly_yield, payback, estimate
+from .solar import estimate, monthly_yield, payback
 
 INCLUSION_LABELS = {
     "net_metering": ("net-metering application", "Will you handle the net-metering application with the utility, and is it included in the price?"),
@@ -16,7 +15,7 @@ INCLUSION_LABELS = {
 }
 
 
-def price_incl_vat(q: QuoteFields) -> Optional[float]:
+def price_incl_vat(q: QuoteFields) -> float | None:
     if q.total_price_php is None:
         return None
     if q.vat_included is False:
@@ -24,7 +23,7 @@ def price_incl_vat(q: QuoteFields) -> Optional[float]:
     return q.total_price_php
 
 
-def analyse(q: QuoteFields, yearly_yield: float, solar_ctx: Optional[dict]) -> QuoteResult:
+def analyse(q: QuoteFields, yearly_yield: float, solar_ctx: dict | None) -> QuoteResult:
     d = defaults()
     qf = d["quote_flags"]
     flags: list[Flag] = []

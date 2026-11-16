@@ -245,7 +245,7 @@ Rules: no names, addresses, city/barangay, contact details, IP addresses, instal
 ## 9. Explanations and text
 
 - `homesolar/explain.py` builds explanations from templates keyed on the result (limiting factor, verdict band, warnings, net-metering choice). This always works and costs nothing.
-- Optional AI rewording (behind `AI_EXPLAIN_ENABLED`) receives only the computed result object and is instructed not to change or add numbers; output is checked so every number in it appears in the result, otherwise the template text is used.
+- Optional AI rewording (behind `AI_EXPLAIN_ENABLED`; **not implemented in v0.1**, template text only) would receive only the computed result object and is instructed not to change or add numbers; output is checked so every number in it appears in the result, otherwise the template text is used.
 
 ## 10. Configuration
 
@@ -276,7 +276,7 @@ NREL_API_KEY=                  # tools/ only, never deployed
 - **Property checks:** savings never negative; bigger system never lowers generation; payback low ≤ high.
 - **API:** every route via `TestClient`; extraction tested with stubbed AI responses and sample dummy quotes (no real quotes in the repo).
 - **Privacy test:** assert that stored records contain no fields outside the allowed list.
-- CI: GitHub Actions running `pytest` on push (free for private repos within minutes quota).
+- CI: GitHub Actions (see section 15).
 
 ## 13. Performance and limits
 
@@ -286,7 +286,32 @@ NREL_API_KEY=                  # tools/ only, never deployed
 
 ## 14. Deployment
 
-- GitHub `HomeSolarPH` (private) connected to a Vercel project; pushes to `main` deploy production, other branches get preview URLs.
+- Vercel project linked to the GitHub `HomeSolarPH` repository (private). Vercel's own Git auto-deploys are switched off in `vercel.json` (`git.deploymentEnabled: false`); **GitHub Actions does all deploying** (section 15), so nothing reaches production without passing the checks.
 - Neon Postgres added from the Vercel Marketplace; `db/schema.sql` applied once.
 - AI Gateway enabled for the Vercel team; OIDC used by the function.
 - Vercel only during the test stage; no other hosts.
+
+## 15. CI/CD (GitHub Actions)
+
+Workflow: `.github/workflows/ci-cd.yml`.
+
+| Job | Runs on | What it does |
+|---|---|---|
+| `checks` | every push, pull request, manual run | `uv sync --locked`; ruff lint; pytest; `tools/check_requirements.sh` (Vercel's `requirements.txt` must match `uv.lock`); smoke test that starts the app, loads every page and runs one solar check |
+| `deploy-preview` | pull requests, after `checks` passes | Vercel CLI (pinned version) deploys a preview; URL written to the run summary |
+| `deploy-production` | push to `main`, after `checks` passes | Vercel CLI deploys to production (GitHub environment `production`, one deploy at a time); then calls `PRODUCTION_URL/api/health` and fails if it is not `ok` |
+
+Deploy jobs skip themselves (with a notice) until these are set in GitHub → Settings → Secrets and variables → Actions:
+
+| Name | Type | Where to get it |
+|---|---|---|
+| `VERCEL_TOKEN` | secret | Vercel → Account Settings → Tokens (scope: the team that owns the project) |
+| `VERCEL_ORG_ID` | secret | Vercel project → Settings → General ("Team ID"), or `.vercel/project.json` after `vercel link` |
+| `VERCEL_PROJECT_ID` | secret | Vercel project → Settings → General ("Project ID") |
+| `PRODUCTION_URL` | variable | The production address, e.g. `https://<project>.vercel.app` |
+
+Other rules:
+- **Dependabot** (`.github/dependabot.yml`) opens weekly grouped pull requests for Python packages (`uv`) and GitHub Actions. Dependabot pull requests get no secrets, so they run checks only. When a Python update changes `uv.lock`, regenerate `requirements.txt` on that branch (the check prints the command).
+- Pull requests from forks get no secrets either, so they never deploy.
+- Branch protection (require `checks` before merging to `main`) needs a paid GitHub plan for private repositories; it can be switched on free once the repository is public.
+- Actions minutes: a full run takes about 1–2 minutes, well inside the free monthly allowance for private repositories.

@@ -1,5 +1,6 @@
 """Load installer-guide Markdown pages (with a small front-matter block)."""
 from functools import lru_cache
+
 import markdown
 
 from .config import CONTENT

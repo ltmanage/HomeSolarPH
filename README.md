@@ -29,12 +29,17 @@ Tests (57):
 uv run pytest -q
 ```
 
+## CI/CD
+
+GitHub Actions (`.github/workflows/ci-cd.yml`) runs lint, tests, a requirements check and a smoke test on every push and pull request. Only when those pass does it deploy: pull requests to a Vercel preview, `main` to production. Vercel's own auto-deploys are off (`vercel.json`). Dependabot proposes weekly dependency updates. Details: [specs.md section 15](docs/specs.md).
+
 ## Deploy to Vercel (free Hobby plan)
 
-1. In Vercel, **Add New → Project**, import the `HomeSolarPH` GitHub repository. Framework preset: FastAPI (detected). No build command needed.
+1. In Vercel, **Add New → Project**, import the `HomeSolarPH` GitHub repository. Framework preset: FastAPI (detected). No build command needed. (Vercel won't auto-deploy on pushes; GitHub Actions does.)
 2. **AI Gateway (optional, for reading quotes):** enable AI Gateway for the team. The function authenticates with its OIDC token automatically. Optionally set `AI_MODEL` (default `google/gemini-2.5-flash`) and `AI_DAILY_CAP` (default 50).
 3. **Database (optional, for sharing and feedback):** add **Neon** from the Vercel Marketplace (free plan) and connect it to the project; it sets `DATABASE_URL`. Run `db/schema.sql` once in the Neon SQL editor.
-4. Redeploy. Check `/api/health` shows `ai_enabled` and `sharing_enabled` as expected.
+4. In GitHub → Settings → Secrets and variables → Actions, add secrets `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` and the variable `PRODUCTION_URL`.
+5. Re-run the latest **CI/CD** workflow on `main` (Actions tab → Run workflow). It deploys and checks `/api/health` on the live site.
 
 ## Data
 

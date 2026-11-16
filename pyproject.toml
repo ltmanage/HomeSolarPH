@@ -15,8 +15,16 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest>=8.3", "uvicorn>=0.30"]
+dev = ["pytest>=8.3", "uvicorn>=0.30", "ruff>=0.8"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.ruff]
+line-length = 180
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "UP", "I"]
+ignore = ["E701", "E702", "B008"]   # compact one-line statements; FastAPI File() defaults

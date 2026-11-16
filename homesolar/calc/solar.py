@@ -1,6 +1,5 @@
 """Solar check: sizing, generation, savings and payback. Pure functions, no I/O beyond data files."""
 from __future__ import annotations
-from typing import Optional
 
 from ..config import defaults, region_map
 from ..models import Assumption, Case, SolarEstimate, SolarInput
@@ -28,7 +27,7 @@ def monthly_yield(region: str, direction: str, shading: str) -> list[float]:
     return [v * f for v in base]
 
 
-def payback(cost: float, first_year_saving: float, escalation: float, inverter_cost: float) -> tuple[Optional[float], float]:
+def payback(cost: float, first_year_saving: float, escalation: float, inverter_cost: float) -> tuple[float | None, float]:
     """Return (payback years, interpolated; None if beyond 25 years) and 25-year net savings."""
     d = defaults()
     deg = d["degradation"]["value"]
@@ -119,8 +118,8 @@ def estimate(inp: SolarInput) -> SolarEstimate:
     def year_one(yield_factor: float):
         gen = [size * v * yield_factor for v in Y]
         self_ = [min(g, share * kwh) for g in gen]
-        exp = [g - s for g, s in zip(gen, self_)]
-        saving = sum(s * rate * avoid + e * credit for s, e in zip(self_, exp))
+        exp = [g - s for g, s in zip(gen, self_, strict=True)]
+        saving = sum(s * rate * avoid + e * credit for s, e in zip(self_, exp, strict=True))
         cap = max(0.0, 12 * (bill_before - fixed))
         return gen, self_, exp, min(saving, cap)
 

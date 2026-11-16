@@ -1,5 +1,6 @@
 """Settings from environment variables, plus loading of the data files."""
-import json, os
+import json
+import os
 from functools import lru_cache
 from pathlib import Path
 
