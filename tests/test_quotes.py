@@ -158,3 +158,35 @@ def test_estimate_column_with_and_without_solar_check():
     assert with_check.yearly_savings_low <= with_check.yearly_savings_high
     no_check = compare(CompareRequest(quotes=[good_quote()], region="NCR")).estimate
     assert not no_check.has_solar_check and no_check.size_kwp is None and no_check.price_per_wp_low == 44.0
+
+
+def test_ai_extract_retries_when_busy(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(ai_extract, "sleep", lambda s: None)
+    calls = []
+
+    def handler(request):
+        calls.append(1)
+        if len(calls) == 1:
+            return httpx.Response(429, json=[{"error": {"message": "Quota exceeded. Please retry in 7s."}}])
+        return httpx.Response(200, json={"choices": [{"message": {"content": '{"kwp": 6, "total_price_php": 312000}'}}]})
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    f = ai_extract.extract("pdf", b"", "Quotation text " * 30, "Quote A", client=client)
+    assert (f.kwp, f.total_price_php, len(calls)) == (6, 312000, 2)
+
+
+def test_ai_extract_busy_after_retries(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    waits = []
+    monkeypatch.setattr(ai_extract, "sleep", waits.append)
+    client = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(503, json={"error": {"message": "overloaded"}})))
+    with pytest.raises(ai_extract.ExtractionUnavailable) as e:
+        ai_extract.extract("pdf", b"", "Quotation text " * 30, "Quote A", client=client)
+    assert e.value.busy and len(waits) == ai_extract.ATTEMPTS - 1
+
+
+def test_retry_wait_uses_service_hint():
+    r = httpx.Response(429, text='{"error": {"message": "Please retry in 7.5s."}}')
+    assert ai_extract._retry_wait(r, 0) == 7.5
+    assert ai_extract._retry_wait(httpx.Response(429, text="{}"), 1) == 8.0
+    assert ai_extract._retry_wait(httpx.Response(429, headers={"retry-after": "90"}), 0) == ai_extract.MAX_WAIT

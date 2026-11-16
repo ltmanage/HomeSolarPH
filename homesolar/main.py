@@ -135,8 +135,10 @@ async def api_extract(request: Request, file: UploadFile = File(...), label: str
     except ai_extract.ExtractionUnavailable as err:
         print(f"AI extraction unavailable: {err}")   # visible in Vercel function logs
         return {"source": "manual", "fields": QuoteFields(label=label).model_dump(), "text": text[:6000],
-                "message": "We could not read this file automatically. Please type the key figures from your quote.",
-                "reason": str(err)[:200]}
+                "message": ("The free reading service is busy right now. Wait a minute and press “Try reading again”, "
+                            "or type the key figures from your quote." if err.busy else
+                            "We could not read this file automatically. Please type the key figures from your quote."),
+                "retry": err.busy, "reason": str(err)[:200]}
     finally:
         del data   # the file is never stored
     return {"source": "ai_text" if text else "ai_image", "fields": fields.model_dump(), "text": "",

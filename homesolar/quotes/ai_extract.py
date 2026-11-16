@@ -1,4 +1,4 @@
-"""Optional AI extraction of quote fields through the Vercel AI Gateway (OpenAI-compatible API).
+"""Optional AI extraction of quote fields through an OpenAI-compatible API (Gemini or the Vercel AI Gateway).
 
 The AI only reads the document. It never calculates; every field is shown to the user to confirm.
 """
@@ -7,6 +7,7 @@ from __future__ import annotations
 import base64
 import json
 import re
+import time
 
 import httpx
 from pydantic import ValidationError
@@ -38,8 +39,30 @@ SCHEMA_HINT = json.dumps({
 })
 
 
+RETRY_STATUS = {429, 500, 502, 503, 504}   # free tiers often answer "busy" or "too many requests per minute"
+ATTEMPTS = 3
+REQUEST_TIMEOUT = 50   # seconds per try
+BUDGET = 100           # seconds for all tries together
+MAX_WAIT = 20          # longest pause between tries
+
+
 class ExtractionUnavailable(RuntimeError):
-    pass
+    def __init__(self, msg: str, busy: bool = False):
+        super().__init__(msg)
+        self.busy = busy   # the service was busy or slow: trying again later may work
+
+
+def _retry_wait(r: httpx.Response | None, attempt: int) -> float:
+    """Seconds to wait before the next try: the service's own hint if it gives one, else a short backoff."""
+    hint = None
+    if r is not None:
+        ra = r.headers.get("retry-after", "")
+        if ra.replace(".", "", 1).isdigit():
+            hint = float(ra)
+        else:
+            m = re.search(r"retry(?:Delay)?\D{0,12}?(\d+(?:\.\d+)?)\s*s", r.text, re.I)
+            hint = float(m.group(1)) if m else None
+    return min(MAX_WAIT, hint if hint is not None else 4.0 * (2 ** attempt))
 
 
 def _parse_json(text: str) -> dict:
@@ -106,24 +129,44 @@ def extract(kind: str, data: bytes, text: str, label: str, client: httpx.Client 
         body["reasoning_effort"] = settings.ai_reasoning_effort   # copying figures needs little "thinking"; keeps replies fast
     headers = {"Authorization": f"Bearer {token}"}
     own = client is None
-    client = client or httpx.Client(timeout=90)
+    client = client or httpx.Client(timeout=REQUEST_TIMEOUT)
+    deadline = time.monotonic() + BUDGET
     try:
-        last_err = None
-        for _ in range(2):   # one retry on unreadable JSON
+        last_err, bad_json = None, 0
+        for attempt in range(ATTEMPTS):
+            r = None
             try:
                 r = client.post(f"{settings.ai_base_url}/chat/completions", json=body, headers=headers)
+            except httpx.TimeoutException as e:
+                last_err = ExtractionUnavailable(f"AI service timed out: {e.__class__.__name__}", busy=True)
             except httpx.HTTPError as e:
                 raise ExtractionUnavailable(f"AI service not reachable: {e.__class__.__name__}") from e
-            if r.status_code != 200:
+            if r is not None and r.status_code in RETRY_STATUS:
+                last_err = ExtractionUnavailable(f"AI service returned {r.status_code} {_error_detail(r)[:150]}".strip(), busy=True)
+            elif r is not None and r.status_code != 200:
                 raise ExtractionUnavailable(f"AI service returned {r.status_code} {_error_detail(r)[:150]}".strip())
-            try:
-                reply = r.json()["choices"][0]["message"]["content"]
-                if isinstance(reply, list):
-                    reply = "".join(p.get("text", "") for p in reply)
-                return to_fields(_parse_json(reply), label)
-            except (KeyError, ValueError, TypeError) as e:
-                last_err = e
-        raise ExtractionUnavailable(f"AI reply could not be read: {last_err}")
+            elif r is not None:
+                try:
+                    reply = r.json()["choices"][0]["message"]["content"]
+                    if isinstance(reply, list):
+                        reply = "".join(p.get("text", "") for p in reply)
+                    return to_fields(_parse_json(reply), label)
+                except (KeyError, ValueError, TypeError) as e:
+                    bad_json += 1
+                    last_err = ExtractionUnavailable(f"AI reply could not be read: {e}")
+                    if bad_json >= 2:   # one retry on unreadable JSON
+                        break
+                    continue
+            if attempt == ATTEMPTS - 1:
+                break
+            wait = _retry_wait(r, attempt)
+            if time.monotonic() + wait + REQUEST_TIMEOUT > deadline:   # no time left for another full try
+                break
+            sleep(wait)
+        raise last_err
     finally:
         if own:
             client.close()
+
+
+sleep = time.sleep   # replaced in tests

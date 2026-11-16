@@ -46,16 +46,44 @@
     return n;
   }
 
-  function addCard(fields, source, message, text) {
+  function showRead(q, data) {   // put an extraction result into an existing card
+    const el = q.el;
+    el.querySelector(".src").textContent = data.source.startsWith("ai") ? "Read automatically: please check" : "Typed in";
+    el.querySelector(".qmsg").textContent = data.message || "";
+    const d = el.querySelector(".qtext");
+    d.hidden = !data.text; d.querySelector("pre").textContent = data.text || "";
+    el.querySelector(".qretry").hidden = !(q.file && data.retry);   // only when the reading service was busy
+  }
+
+  async function readFile(file, label) {
+    const fd = new FormData();
+    fd.append("file", file); fd.append("label", label);
+    const r = await fetch("/api/quotes/extract", { method: "POST", body: fd });
+    let data = null;
+    try { data = await r.json(); } catch (_) { /* not JSON, e.g. a server timeout page */ }
+    if (!r.ok || !data) throw new Error((data && data.detail) || "Could not read the file. Please try again or type the figures.");
+    return data;
+  }
+
+  function addCard(fields, source, message, text, file, retry) {
     if (quotes.length >= MAX) { status.textContent = "You can compare up to 4 quotes."; return; }
     const el = tpl.content.firstElementChild.cloneNode(true);
     const letter = "ABCD"[quotes.length];
     fields.label = fields.label && fields.label !== "Quote" ? fields.label : `Quote ${letter}`;
     fillFields(el, fields);
-    el.querySelector(".src").textContent = source.startsWith("ai") ? "Read automatically: please check" : "Typed in";
-    el.querySelector(".qmsg").textContent = message || "";
-    if (text) { const d = el.querySelector(".qtext"); d.hidden = false; d.querySelector("pre").textContent = text; }
-    const q = { el, source, original: readFields(el) };
+    const q = { el, source, original: readFields(el), file: file || null };   // file stays in this page only, for "Try reading again"
+    showRead(q, { source, message, text, retry });
+    el.querySelector(".reread").addEventListener("click", async (ev) => {
+      const btn = ev.currentTarget, rs = el.querySelector(".rstatus");
+      btn.disabled = true; rs.textContent = "Reading again... this can take up to a minute.";
+      try {
+        const label = readFields(el).label;
+        const data = await readFile(q.file, label);
+        if (data.source.startsWith("ai")) { data.fields.label = label; fillFields(el, data.fields); q.original = readFields(el); q.source = data.source; }
+        showRead(q, data); rs.textContent = "";
+      } catch (e) { rs.textContent = e.message; }
+      btn.disabled = false;
+    });
     el.querySelector(".remove").addEventListener("click", () => {
       quotes.splice(quotes.indexOf(q), 1); el.remove(); update();
     });
@@ -84,12 +112,8 @@
     try {
       const small = await shrinkImage(file);
       if (small.size > 4 * 1024 * 1024) throw new Error("The file is larger than 4 MB. Try a smaller photo or a PDF.");
-      const fd = new FormData();
-      fd.append("file", small); fd.append("label", `Quote ${"ABCD"[quotes.length]}`);
-      const r = await fetch("/api/quotes/extract", { method: "POST", body: fd });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.detail || "Could not read the file.");
-      addCard(data.fields, data.source, data.message, data.text);
+      const data = await readFile(small, `Quote ${"ABCD"[quotes.length]}`);
+      addCard(data.fields, data.source, data.message, data.text, small, data.retry);
       status.textContent = "";
     } catch (e) { status.textContent = e.message; }
   });
@@ -152,28 +176,36 @@
     document.getElementById("result").scrollIntoView({ behavior: "smooth" });
   }
 
+  const hasNumbers = (f) => Boolean(f.kwp || f.total_price_php || (f.panel_watt && f.panel_qty));
   document.getElementById("compare").addEventListener("click", async () => {
-    const qs = quotes.map((q) => readFields(q.el));
-    const body = { quotes: qs };
+    const all = quotes.map((q) => ({ q, f: readFields(q.el) }));
+    const ready = all.filter((c) => hasNumbers(c.f));
+    const blank = all.filter((c) => !hasNumbers(c.f)).map((c) => c.f.label);
+    if (!ready.length) {
+      status.textContent = "Enter at least the system size or total price for a quote (or try reading the file again) before comparing.";
+      return;
+    }
+    const body = { quotes: ready.map((c) => c.f) };
     if (solar) body.solar = solar; else body.region = document.getElementById("region").value;
     try {
       renderResult(await HSP.postJSON("/api/quotes/compare", body));
-      lastCompared = qs;
+      lastCompared = ready;
+      status.textContent = blank.length ? `Left out of the comparison (no system size or price yet): ${blank.join(", ")}.` : "";
     } catch (e) { status.textContent = e.message; }
   });
 
   // Consent to save anonymous quote data: asked once before leaving, if at least one quote has figures.
   let consentAnswered = false;
   const sharePayload = () => {
-    const qs = lastCompared || quotes.map((q) => readFields(q.el));
+    const used = lastCompared || quotes.map((q) => ({ q, f: readFields(q.el) })).filter((c) => hasNumbers(c.f));
     return {
-      kind: "quotes", solar: solar || null, quotes: qs,
+      kind: "quotes", solar: solar || null, quotes: used.map((c) => c.f),
       region: solar ? null : document.getElementById("region").value,
-      fields_corrected: quotes.map((q, i) => countChanges(q.original, qs[i] || {})),
-      extraction_source: quotes.map((q) => q.source),
+      fields_corrected: used.map((c) => countChanges(c.q.original, c.f)),
+      extraction_source: used.map((c) => c.q.source),
     };
   };
-  const hasFigures = () => quotes.some((q) => { const f = readFields(q.el); return f.kwp || f.total_price_php; });
+  const hasFigures = () => quotes.some((q) => hasNumbers(readFields(q.el)));
 
   HSP.guardLeave({
     hasData: () => quotes.length > 0,
