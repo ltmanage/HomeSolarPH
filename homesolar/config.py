@@ -20,8 +20,13 @@ class Settings:
         return os.environ.get("AI_GATEWAY_API_KEY") or os.environ.get("VERCEL_OIDC_TOKEN", "")
 
     @property
+    def on_vercel(self) -> bool:
+        return os.environ.get("VERCEL") == "1"
+
+    @property
     def ai_enabled(self) -> bool:
-        return _flag("AI_ENABLED", True) and bool(self.ai_key)
+        # On Vercel, Python functions get the OIDC token per request (x-vercel-oidc-token header), not from env.
+        return _flag("AI_ENABLED", True) and (bool(self.ai_key) or self.on_vercel)
 
     @property
     def ai_explain_enabled(self) -> bool:

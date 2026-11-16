@@ -70,9 +70,12 @@ def to_fields(d: dict, label: str) -> QuoteFields:
         return QuoteFields(label=label, **{k: v for k, v in d.items() if k not in bad})
 
 
-def extract(kind: str, data: bytes, text: str, label: str, client: httpx.Client | None = None) -> QuoteFields:
-    if not settings.ai_enabled:
-        raise ExtractionUnavailable("AI extraction is switched off.")
+def extract(kind: str, data: bytes, text: str, label: str, client: httpx.Client | None = None,
+            token: str | None = None) -> QuoteFields:
+    """token: per-request Vercel OIDC token (x-vercel-oidc-token header); falls back to AI_GATEWAY_API_KEY."""
+    token = token or settings.ai_key
+    if not settings.ai_enabled or not token:
+        raise ExtractionUnavailable("AI extraction is switched off or has no credentials.")
     if text:
         content = [{"type": "text", "text": f"Quotation text:\n\n{text[:20000]}\n\nReturn JSON with these keys:\n{SCHEMA_HINT}"}]
     else:
@@ -84,7 +87,7 @@ def extract(kind: str, data: bytes, text: str, label: str, client: httpx.Client 
         content = [part, {"type": "text", "text": f"Read this quotation. Return JSON with these keys:\n{SCHEMA_HINT}"}]
     body = {"model": settings.ai_model, "temperature": 0,
             "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": content}]}
-    headers = {"Authorization": f"Bearer {settings.ai_key}"}
+    headers = {"Authorization": f"Bearer {token}"}
     own = client is None
     client = client or httpx.Client(timeout=45)
     try:

@@ -114,7 +114,7 @@ def api_estimate(inp: SolarInput):
 
 
 @app.post("/api/quotes/extract")
-async def api_extract(file: UploadFile = File(...), label: str = Form("Quote")):
+async def api_extract(request: Request, file: UploadFile = File(...), label: str = Form("Quote")):
     data = await file.read(intake.MAX_BYTES + 1)
     await file.close()
     try:
@@ -130,7 +130,7 @@ async def api_extract(file: UploadFile = File(...), label: str = Form("Quote")):
         return {"source": "manual", "fields": QuoteFields(label=label).model_dump(), "text": text[:6000],
                 "message": "Automatic reading has reached today's limit. Please type the key figures from your quote."}
     try:
-        fields = ai_extract.extract(kind, data, text, label)
+        fields = ai_extract.extract(kind, data, text, label, token=request.headers.get("x-vercel-oidc-token"))
     except ai_extract.ExtractionUnavailable:
         return {"source": "manual", "fields": QuoteFields(label=label).model_dump(), "text": text[:6000],
                 "message": "We could not read this file automatically. Please type the key figures from your quote."}

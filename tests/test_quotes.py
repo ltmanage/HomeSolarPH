@@ -93,3 +93,19 @@ def test_ai_extract_failure_is_unavailable(monkeypatch):
     client = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(402, json={})))
     with pytest.raises(ai_extract.ExtractionUnavailable):
         ai_extract.extract("jpeg", b"\xff\xd8\xff", "", "Quote A", client=client)
+
+
+def test_ai_extract_uses_per_request_vercel_token(monkeypatch):
+    monkeypatch.delenv("AI_GATEWAY_API_KEY", raising=False)
+    monkeypatch.delenv("VERCEL_OIDC_TOKEN", raising=False)
+    monkeypatch.setenv("VERCEL", "1")
+
+    def handler(request):
+        assert request.headers["Authorization"] == "Bearer oidc-from-header"
+        return httpx.Response(200, json={"choices": [{"message": {"content": '{"kwp": 6}'}}]})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    f = ai_extract.extract("pdf", b"", "Quotation text " * 30, "Quote A", client=client, token="oidc-from-header")
+    assert f.kwp == 6
+    with pytest.raises(ai_extract.ExtractionUnavailable):   # on Vercel but no token in the request
+        ai_extract.extract("pdf", b"", "text", "Quote A", client=client)
