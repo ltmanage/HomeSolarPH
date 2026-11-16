@@ -1,7 +1,7 @@
 # CI/CD for HomeSolarPH.
 #   CI (every push and pull request): lint, tests, requirements check, smoke test of the running app.
 #   CD (only after CI passes): pull request -> Vercel preview; push to main -> Vercel production.
-# Deploy jobs skip themselves until the Vercel secrets exist (see docs/specs.md, "CI/CD").
+# Deploy jobs skip themselves until the Vercel secrets (VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID) exist.
 name: CI/CD
 
 on:

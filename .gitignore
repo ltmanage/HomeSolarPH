@@ -9,3 +9,6 @@ __pycache__/
 node_modules/
 *.log
 .claude/
+
+# planning documents are kept locally, not published
+docs/
