@@ -80,7 +80,7 @@
     ev.target.value = "";
     if (!file) return;
     if (quotes.length >= MAX) { status.textContent = "You can compare up to 4 quotes."; return; }
-    status.textContent = "Reading your quote... this can take up to 30 seconds.";
+    status.textContent = "Reading your quote... this can take up to a minute.";
     try {
       const small = await shrinkImage(file);
       if (small.size > 4 * 1024 * 1024) throw new Error("The file is larger than 4 MB. Try a smaller photo or a PDF.");

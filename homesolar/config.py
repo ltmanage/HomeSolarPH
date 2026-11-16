@@ -62,6 +62,10 @@ class Settings:
         return os.environ.get("AI_BASE_URL") or PROVIDERS[self.ai_provider][0]
 
     @property
+    def ai_reasoning_effort(self) -> str:
+        return os.environ.get("AI_REASONING_EFFORT", "low")
+
+    @property
     def ai_daily_cap(self) -> int:
         return int(os.environ.get("AI_DAILY_CAP", "50"))
 

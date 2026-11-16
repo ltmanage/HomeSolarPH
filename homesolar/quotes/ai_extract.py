@@ -101,9 +101,11 @@ def extract(kind: str, data: bytes, text: str, label: str, client: httpx.Client 
         content = [part, {"type": "text", "text": f"Read this quotation. Return JSON with these keys:\n{SCHEMA_HINT}"}]
     body = {"model": settings.ai_model, "temperature": 0,
             "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": content}]}
+    if settings.ai_provider == "gemini":
+        body["reasoning_effort"] = settings.ai_reasoning_effort   # copying figures needs little "thinking"; keeps replies fast
     headers = {"Authorization": f"Bearer {token}"}
     own = client is None
-    client = client or httpx.Client(timeout=45)
+    client = client or httpx.Client(timeout=90)
     try:
         last_err = None
         for _ in range(2):   # one retry on unreadable JSON
