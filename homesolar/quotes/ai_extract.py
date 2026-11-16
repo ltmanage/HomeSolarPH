@@ -61,6 +61,20 @@ def _clean(d: dict) -> dict:
     return out
 
 
+def _error_detail(r: httpx.Response) -> str:
+    """Best-effort error message. Providers differ: {"error": {...}}, [{"error": {...}}], or plain text."""
+    try:
+        body = r.json()
+    except ValueError:
+        return r.text[:150]
+    if isinstance(body, list) and body:
+        body = body[0]
+    err = body.get("error", body) if isinstance(body, dict) else body
+    if isinstance(err, dict):
+        return str(err.get("message") or err.get("status") or err.get("type") or "")
+    return str(err)
+
+
 def to_fields(d: dict, label: str) -> QuoteFields:
     d = _clean(d)
     try:
@@ -98,13 +112,7 @@ def extract(kind: str, data: bytes, text: str, label: str, client: httpx.Client 
             except httpx.HTTPError as e:
                 raise ExtractionUnavailable(f"AI service not reachable: {e.__class__.__name__}") from e
             if r.status_code != 200:
-                detail = ""
-                try:
-                    err = r.json().get("error", {})
-                    detail = (err.get("message") or err.get("type") or "") if isinstance(err, dict) else str(err)
-                except ValueError:
-                    pass
-                raise ExtractionUnavailable(f"AI service returned {r.status_code} {detail[:150]}".strip())
+                raise ExtractionUnavailable(f"AI service returned {r.status_code} {_error_detail(r)[:150]}".strip())
             try:
                 reply = r.json()["choices"][0]["message"]["content"]
                 if isinstance(reply, list):

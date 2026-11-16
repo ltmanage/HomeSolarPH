@@ -134,3 +134,17 @@ def test_gemini_without_key_is_off(monkeypatch):
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.setenv("VERCEL", "1")
     assert not settings.ai_enabled
+
+
+@pytest.mark.parametrize("body", [
+    [{"error": {"code": 400, "message": "API key not valid", "status": "INVALID_ARGUMENT"}}],
+    {"error": {"message": "quota exceeded"}},
+    "plain text error",
+])
+def test_ai_error_bodies_never_crash(monkeypatch, body):
+    monkeypatch.setenv("GEMINI_API_KEY", "g-key")
+    resp = (lambda r: httpx.Response(400, json=body)) if not isinstance(body, str) else (lambda r: httpx.Response(400, text=body))
+    client = httpx.Client(transport=httpx.MockTransport(resp))
+    with pytest.raises(ai_extract.ExtractionUnavailable) as e:
+        ai_extract.extract("pdf", b"", "Quotation text " * 30, "Quote A", client=client)
+    assert "400" in str(e.value)
