@@ -16,7 +16,7 @@ def _flag(name: str, default: bool) -> bool:
 
 PROVIDERS = {
     # name: (OpenAI-compatible base URL, default model)
-    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.8-flash"),
+    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.5-flash"),
     "gateway": ("https://ai-gateway.vercel.sh/v1", "google/gemini-2.5-flash"),
 }
 
