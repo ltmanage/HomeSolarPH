@@ -14,9 +14,26 @@ def _flag(name: str, default: bool) -> bool:
     return default if v is None else v.strip().lower() in ("1", "true", "yes", "on")
 
 
+PROVIDERS = {
+    # name: (OpenAI-compatible base URL, default model)
+    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-2.5-flash"),
+    "gateway": ("https://ai-gateway.vercel.sh/v1", "google/gemini-2.5-flash"),
+}
+
+
 class Settings:
     @property
+    def ai_provider(self) -> str:
+        """'gemini' (Google AI Studio key) or 'gateway' (Vercel AI Gateway). Default: gemini if its key is set."""
+        p = os.environ.get("AI_PROVIDER", "").strip().lower()
+        if p in PROVIDERS:
+            return p
+        return "gemini" if os.environ.get("GEMINI_API_KEY") else "gateway"
+
+    @property
     def ai_key(self) -> str:
+        if self.ai_provider == "gemini":
+            return os.environ.get("GEMINI_API_KEY", "")
         return os.environ.get("AI_GATEWAY_API_KEY") or os.environ.get("VERCEL_OIDC_TOKEN", "")
 
     @property
@@ -25,8 +42,12 @@ class Settings:
 
     @property
     def ai_enabled(self) -> bool:
-        # On Vercel, Python functions get the OIDC token per request (x-vercel-oidc-token header), not from env.
-        return _flag("AI_ENABLED", True) and (bool(self.ai_key) or self.on_vercel)
+        if not _flag("AI_ENABLED", True):
+            return False
+        if self.ai_provider == "gateway":
+            # On Vercel, Python functions get the OIDC token per request (x-vercel-oidc-token header), not from env.
+            return bool(self.ai_key) or self.on_vercel
+        return bool(self.ai_key)
 
     @property
     def ai_explain_enabled(self) -> bool:
@@ -34,11 +55,11 @@ class Settings:
 
     @property
     def ai_model(self) -> str:
-        return os.environ.get("AI_MODEL", "google/gemini-2.5-flash")
+        return os.environ.get("AI_MODEL") or PROVIDERS[self.ai_provider][1]
 
     @property
     def ai_base_url(self) -> str:
-        return os.environ.get("AI_GATEWAY_URL", "https://ai-gateway.vercel.sh/v1")
+        return os.environ.get("AI_BASE_URL") or PROVIDERS[self.ai_provider][0]
 
     @property
     def ai_daily_cap(self) -> int:

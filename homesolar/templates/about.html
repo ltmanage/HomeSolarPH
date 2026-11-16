@@ -27,7 +27,10 @@
 </table></div>
 
 <h2>Reading your quotes</h2>
-<p>When you upload a quote, the file is read once to pick out key figures{% if settings.ai_enabled %} (using an AI model through Vercel's AI Gateway){% endif %}, then discarded. We never store uploaded files. The AI only copies figures from the document; all calculations are done by the app, and you confirm every figure before comparing.</p>
+<p>When you upload a quote, the file is read once to pick out key figures{% if settings.ai_enabled %} (using {{ "Google's Gemini AI" if settings.ai_provider == "gemini" else "an AI model through Vercel's AI Gateway" }}){% endif %}, then discarded. We never store uploaded files. The AI only copies figures from the document; all calculations are done by the app, and you confirm every figure before comparing.</p>
+{% if settings.ai_enabled and settings.ai_provider == "gemini" %}
+<p><strong>Test version note:</strong> this version uses Gemini's free tier, under which Google may use submitted content to improve its products. Please cover or crop out your name, address and phone number before uploading a quote, or type the figures in instead.</p>
+{% endif %}
 
 <h2>Your data</h2>
 <ul>

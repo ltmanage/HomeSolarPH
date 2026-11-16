@@ -130,7 +130,8 @@ async def api_extract(request: Request, file: UploadFile = File(...), label: str
         return {"source": "manual", "fields": QuoteFields(label=label).model_dump(), "text": text[:6000],
                 "message": "Automatic reading has reached today's limit. Please type the key figures from your quote."}
     try:
-        fields = ai_extract.extract(kind, data, text, label, token=request.headers.get("x-vercel-oidc-token"))
+        oidc = request.headers.get("x-vercel-oidc-token") if settings.ai_provider == "gateway" else None
+        fields = ai_extract.extract(kind, data, text, label, token=oidc)
     except ai_extract.ExtractionUnavailable as err:
         print(f"AI extraction unavailable: {err}")   # visible in Vercel function logs
         return {"source": "manual", "fields": QuoteFields(label=label).model_dump(), "text": text[:6000],
@@ -190,7 +191,7 @@ def api_feedback(fb: FeedbackRequest):
 @app.get("/api/health")
 def health():
     return {"status": "ok", "version": __version__, "defaults_as_of": defaults()["as_of"],
-            "yield_table": regions().get("generated"), "ai_enabled": settings.ai_enabled,
+            "yield_table": regions().get("generated"), "ai_enabled": settings.ai_enabled, "ai_provider": settings.ai_provider, "ai_model": settings.ai_model,
             "sharing_enabled": settings.sharing_enabled}
 
 

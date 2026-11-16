@@ -109,3 +109,28 @@ def test_ai_extract_uses_per_request_vercel_token(monkeypatch):
     assert f.kwp == 6
     with pytest.raises(ai_extract.ExtractionUnavailable):   # on Vercel but no token in the request
         ai_extract.extract("pdf", b"", "text", "Quote A", client=client)
+
+
+def test_gemini_provider_selected_by_key(monkeypatch):
+    from homesolar.config import settings
+    monkeypatch.delenv("AI_PROVIDER", raising=False)
+    monkeypatch.setenv("GEMINI_API_KEY", "g-key")
+    assert settings.ai_provider == "gemini" and settings.ai_enabled
+    assert settings.ai_base_url.startswith("https://generativelanguage.googleapis.com/")
+    assert settings.ai_model == "gemini-2.5-flash"
+
+    def handler(request):
+        assert str(request.url) == "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+        assert request.headers["Authorization"] == "Bearer g-key"
+        return httpx.Response(200, json={"choices": [{"message": {"content": '{"kwp": 4.5}'}}]})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    assert ai_extract.extract("pdf", b"", "Quotation text " * 30, "Quote A", client=client).kwp == 4.5
+
+
+def test_gemini_without_key_is_off(monkeypatch):
+    from homesolar.config import settings
+    monkeypatch.setenv("AI_PROVIDER", "gemini")
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setenv("VERCEL", "1")
+    assert not settings.ai_enabled

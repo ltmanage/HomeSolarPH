@@ -3,7 +3,7 @@
 {% block content %}
 <h1>Compare installer quotes</h1>
 <p class="lead">Add up to 4 quotes. Upload a PDF or photo and we'll read the key figures{% if not settings.ai_enabled %} (automatic reading is off in this version, so you'll type them){% endif %}. You check and correct every figure before comparing.</p>
-<p class="muted">Files are read once and never stored. Installer names stay on your screen only.</p>
+<p class="muted">Files are read once and never stored. Installer names stay on your screen only.{% if settings.ai_enabled and settings.ai_provider == "gemini" %} <strong>Before uploading, cover or crop out your own name, address and phone number</strong>: this test version reads files with Google's Gemini free tier (<a href="/about">details</a>).{% endif %}</p>
 
 <section id="context" class="note">
   <p id="ctx-has" hidden>Using your solar check figures (<span id="ctx-text"></span>) for savings and payback. <a href="/check">Change</a></p>
