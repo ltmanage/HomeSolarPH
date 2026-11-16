@@ -94,7 +94,8 @@ def test_stored_rows_contain_only_allowed_fields():
 
 def test_home_privacy_text_and_installer_prompt():
     home = client.get("/").text
-    assert "unless you request a referral to our accredited installers" in home
+    assert "We don't ask for your name, address or contact details. If you ask for referral" in home
+    assert "unless you request" not in home
     assert "only if you agree specifically" in home
     r = client.post("/check", data=FORM)
     assert "data-installers" in r.text

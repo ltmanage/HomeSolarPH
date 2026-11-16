@@ -107,22 +107,49 @@ const HSP = (() => {
       if (!a || leaving || e.defaultPrevented || e.ctrlKey || e.metaKey || e.shiftKey || a.target === "_blank") return;
       const url = new URL(a.href, location.href);
       if (url.origin !== location.origin || (url.pathname === location.pathname && url.hash)) return;
+      const consent = opts.consent && opts.consent.needed();
       const ask = opts.askInstallers && !asked();
       const data = opts.hasData();
-      if (!ask && !data) return;
+      if (!consent && !ask && !data) return;
       e.preventDefault();
       const go = () => { leaving = true; location.href = url.href; };
-      const lost = data ? ["If you leave, the quotes and comparison on this page will be lost (nothing is saved)."] : [];
-      if (ask) {
-        dialog("Before you go", ["Would you like a list of accredited installers in your area?", ...lost], [
-          ["Yes, show me", true, () => { store.set("hsp_installers_asked", true); pendingFeature(go); }],
-          ["No, leave page", false, () => { store.set("hsp_installers_asked", true); go(); }],
-          ["Stay on this page", false, null],
-        ]);
-      } else {
-        dialog("Leave this page?", lost, [["Stay on this page", true, null], ["Leave page", false, go]]);
-      }
+      const rest = () => {   // after the consent step (if any): installer question and/or data-loss warning
+        const lost = data ? ["If you leave, the quotes and comparison on this page will be cleared from your screen."] : [];
+        if (ask) {
+          dialog("Before you go", ["Would you like a list of accredited installers in your area?", ...lost], [
+            ["Yes, show me", true, () => { store.set("hsp_installers_asked", true); pendingFeature(go); }],
+            ["No, leave page", false, () => { store.set("hsp_installers_asked", true); go(); }],
+            ["Stay on this page", false, null],
+          ]);
+        } else if (data) {
+          dialog("Leave this page?", lost, [["Stay on this page", true, null], ["Leave page", false, go]]);
+        } else {
+          go();
+        }
+      };
+      if (consent) opts.consent.ask(rest); else rest();
     });
+  }
+
+  /** Ask whether anonymous data from the user's quotes may be saved. getPayload() returns the /api/share body. */
+  function askSaveQuotes(getPayload, onDone) {
+    const sharingOn = document.body.dataset.sharing === "1";
+    const finish = (title, lines) => dialog(title, lines, [["Continue", true, onDone]]);
+    dialog("Save anonymous data from your quotes?", [
+      "May we save anonymous data from the quotes you entered: prices, system sizes, equipment and warranties, " +
+        "with no installer (vendor) or customer names, no contact details and no files?",
+      "Such data will only be used to improve the accuracy of the cost estimates and to update the cost database with changes over time.",
+    ], [
+      ["Yes, save anonymous data", true, async () => {
+        if (!sharingOn) { finish("Not saved", ["Saving is not switched on in this test version yet, so nothing was saved."]); return; }
+        try {
+          const r = await postJSON("/api/share", { consent: true, ...getPayload() });
+          finish("Thank you", [`Saved anonymously. Reference code: ${r.ref_code}`,
+            "Keep this code if you may want to delete the data later (on the About page)."]);
+        } catch (err) { finish("Not saved", [err.message]); }
+      }],
+      ["No, don't save", false, onDone],
+    ]);
   }
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -131,5 +158,5 @@ const HSP = (() => {
     document.querySelectorAll("[data-installers]").forEach((b) => b.addEventListener("click", () => pendingFeature(null)));
     setupFeedback(); setupDelete();
   });
-  return { postJSON, php, num, store, setupShare, guardLeave, pendingFeature };
+  return { postJSON, php, num, store, setupShare, guardLeave, pendingFeature, askSaveQuotes };
 })();

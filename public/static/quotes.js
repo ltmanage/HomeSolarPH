@@ -162,12 +162,27 @@
     } catch (e) { status.textContent = e.message; }
   });
 
-  HSP.guardLeave({ hasData: () => quotes.length > 0, askInstallers: true });
+  // Consent to save anonymous quote data: asked once before leaving, if at least one quote has figures.
+  let consentAnswered = false;
+  const sharePayload = () => {
+    const qs = lastCompared || quotes.map((q) => readFields(q.el));
+    return {
+      kind: "quotes", solar: solar || null, quotes: qs,
+      region: solar ? null : document.getElementById("region").value,
+      fields_corrected: quotes.map((q, i) => countChanges(q.original, qs[i] || {})),
+      extraction_source: quotes.map((q) => q.source),
+    };
+  };
+  const hasFigures = () => quotes.some((q) => { const f = readFields(q.el); return f.kwp || f.total_price_php; });
 
-  HSP.setupShare(() => lastCompared && ({
-    kind: "quotes", solar: solar || null, quotes: lastCompared,
-    region: solar ? null : document.getElementById("region").value,
-    fields_corrected: quotes.map((q, i) => countChanges(q.original, lastCompared[i] || {})),
-    extraction_source: quotes.map((q) => q.source),
-  }));
+  HSP.guardLeave({
+    hasData: () => quotes.length > 0,
+    askInstallers: true,
+    consent: {
+      needed: () => !consentAnswered && hasFigures(),
+      ask: (next) => { consentAnswered = true; HSP.askSaveQuotes(sharePayload, next); },
+    },
+  });
+
+  HSP.setupShare(() => { if (!lastCompared) return null; consentAnswered = true; return sharePayload(); });
 })();

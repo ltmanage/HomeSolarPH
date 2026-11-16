@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="/static/style.css?v={{ version }}">
 <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
 </head>
-<body>
+<body data-sharing="{{ 1 if settings.sharing_enabled else 0 }}">
 <header class="top">
   <a class="brand" href="/"><img src="/static/icon.svg" alt="" width="24" height="24"> HomeSolarPH</a>
   <nav>
