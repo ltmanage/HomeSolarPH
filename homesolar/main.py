@@ -16,7 +16,10 @@ from .models import CompareRequest, FeedbackRequest, QuoteFields, ShareRequest, 
 from .quotes import ai_extract, intake
 
 app = FastAPI(title="HomeSolarPH", version=__version__, docs_url=None, redoc_url=None)
-app.mount("/static", StaticFiles(directory=ROOT / "public" / "static"), name="static")
+# On Vercel, public/ is served by the CDN and is not inside the Python function, so only mount it when present (local runs).
+STATIC_DIR = ROOT / "public" / "static"
+if STATIC_DIR.is_dir():
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=ROOT / "homesolar" / "templates")
 templates.env.globals.update(version=__version__, as_of=lambda: defaults()["as_of"])
 templates.env.filters["php"] = lambda x: "-" if x is None else f"PHP {x:,.0f}"
