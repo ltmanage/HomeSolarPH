@@ -1,5 +1,6 @@
 """File checks and PDF text extraction. Files stay in memory and are never saved."""
 import io
+
 from pypdf import PdfReader
 
 MAX_BYTES = 4 * 1024 * 1024

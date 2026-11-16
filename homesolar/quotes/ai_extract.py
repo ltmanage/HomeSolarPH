@@ -3,8 +3,10 @@
 The AI only reads the document. It never calculates; every field is shown to the user to confirm.
 """
 from __future__ import annotations
-import base64, json, re
-from typing import Optional
+
+import base64
+import json
+import re
 
 import httpx
 from pydantic import ValidationError
@@ -68,7 +70,7 @@ def to_fields(d: dict, label: str) -> QuoteFields:
         return QuoteFields(label=label, **{k: v for k, v in d.items() if k not in bad})
 
 
-def extract(kind: str, data: bytes, text: str, label: str, client: Optional[httpx.Client] = None) -> QuoteFields:
+def extract(kind: str, data: bytes, text: str, label: str, client: httpx.Client | None = None) -> QuoteFields:
     if not settings.ai_enabled:
         raise ExtractionUnavailable("AI extraction is switched off.")
     if text:

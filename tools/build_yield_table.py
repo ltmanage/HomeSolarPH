@@ -9,8 +9,14 @@ Default source is PVGIS (no key). With --source pvwatts and DEMO_KEY (low rate l
 region, and for all directions in two reference regions only. Other directions are then
 derived from the reference regions' month-by-month ratios to south.
 """
-import argparse, datetime, json, os, sys, time
+import argparse
+import datetime
+import json
+import os
+import sys
+import time
 from pathlib import Path
+
 import httpx
 
 API = "https://developer.nlr.gov/api/pvwatts/v8.json"   # NREL is now the National Laboratory of the Rockies
@@ -108,7 +114,7 @@ def main():
             for code in REFERENCE:
                 lat, lon = next((r[2], r[3]) for r in REGIONS if r[0] == code)
                 res = {d: pvwatts(c, key, lat, lon, *DIRECTIONS[d])[0] for d in DIRECTIONS}
-                ratios[code] = {d: [x / s for x, s in zip(res[d], res["south"])] for d in DIRECTIONS}
+                ratios[code] = {d: [x / s for x, s in zip(res[d], res["south"], strict=True)] for d in DIRECTIONS}
                 print("reference", code, {d: round(sum(v), 0) for d, v in res.items()})
             avg = {d: [sum(ratios[r][d][m] for r in REFERENCE) / len(REFERENCE) for m in range(12)] for d in DIRECTIONS}
         for code, name, lat, lon in REGIONS:
@@ -118,7 +124,7 @@ def main():
                     y[d], src = pvwatts(c, key, lat, lon, *DIRECTIONS[d]); sources.add(src)
             else:
                 south, src = pvwatts(c, key, lat, lon, *DIRECTIONS["south"]); sources.add(src)
-                y = {d: [round(s * f, 1) for s, f in zip(south, avg[d])] for d in DIRECTIONS}
+                y = {d: [round(s * f, 1) for s, f in zip(south, avg[d], strict=True)] for d in DIRECTIONS}
             out.append({"code": code, "name": name, "yield_kwh_per_kwp": y})
             print(code, round(sum(y["south"])), "kWh/kWp/yr (south)")
             time.sleep(1.5)

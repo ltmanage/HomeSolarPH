@@ -1,12 +1,15 @@
 """Opt-in anonymous records and feedback (Postgres). Only the fields listed here are ever stored."""
 from __future__ import annotations
-import datetime, secrets, string, threading
-from typing import Optional
+
+import datetime
+import secrets
+import string
+import threading
 
 from . import __version__
-from .config import region_map, settings
 from .calc.quotes import price_incl_vat
 from .calc.solar import estimate
+from .config import region_map, settings
 from .models import FeedbackRequest, ShareRequest
 
 CONSENT_VERSION = "2026-11-v1"
@@ -25,10 +28,10 @@ _mem_ai = {"day": None, "calls": 0}
 _lock = threading.Lock()
 
 
-def band(x: Optional[float], edges: list[float], unit: str) -> Optional[str]:
+def band(x: float | None, edges: list[float], unit: str) -> str | None:
     if x is None:
         return None
-    for lo, hi in zip(edges, edges[1:]):
+    for lo, hi in zip(edges, edges[1:], strict=False):
         if x < hi:
             return f"{lo:g}-{hi:g} {unit}"
     return f"{edges[-1]:g}+ {unit}"
@@ -38,7 +41,7 @@ ROOF_EDGES = [0, 20, 40, 60, 100, 200]
 BUDGET_EDGES = [0, 100000, 200000, 300000, 500000, 1000000]
 
 
-def check_row(req: ShareRequest) -> Optional[dict]:
+def check_row(req: ShareRequest) -> dict | None:
     s = req.solar
     if not s:
         return None

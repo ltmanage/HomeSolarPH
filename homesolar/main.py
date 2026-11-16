@@ -1,6 +1,5 @@
 """HomeSolarPH web app: pages and JSON API."""
 from __future__ import annotations
-import json
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -107,7 +106,7 @@ def api_estimate(inp: SolarInput):
     try:
         e = estimate(inp)
     except ValueError as err:
-        raise HTTPException(422, str(err))
+        raise HTTPException(422, str(err)) from err
     return {"estimate": e.model_dump(), "explain": explain(inp, e)}
 
 
@@ -118,7 +117,7 @@ async def api_extract(file: UploadFile = File(...), label: str = Form("Quote")):
     try:
         kind = intake.check(data)
     except intake.IntakeError as err:
-        raise HTTPException(400, str(err))
+        raise HTTPException(400, str(err)) from err
     text = intake.pdf_text(data) if kind == "pdf" else ""
     label = label[:40] or "Quote"
     if not settings.ai_enabled:
@@ -143,7 +142,7 @@ def api_compare(req: CompareRequest):
     try:
         return compare(req).model_dump()
     except ValueError as err:
-        raise HTTPException(422, str(err))
+        raise HTTPException(422, str(err)) from err
 
 
 @app.post("/api/share")
@@ -155,7 +154,7 @@ def api_share(req: ShareRequest):
     try:
         ref = store.save_share(req)
     except Exception:
-        raise HTTPException(503, "Could not save right now. Nothing was stored.")
+        raise HTTPException(503, "Could not save right now. Nothing was stored.") from None
     return {"ref_code": ref}
 
 
@@ -167,7 +166,7 @@ def api_share_delete(payload: dict):
     try:
         ok = store.delete_share(ref)
     except Exception:
-        raise HTTPException(503, "Could not delete right now. Please try again later.")
+        raise HTTPException(503, "Could not delete right now. Please try again later.") from None
     return {"deleted": ok}
 
 
