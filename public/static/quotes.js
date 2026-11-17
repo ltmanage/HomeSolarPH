@@ -1,6 +1,6 @@
 // Quote comparison: upload or type quotes, confirm fields, compare.
 (() => {
-  const MAX = 4;
+  const MAX = 2;
   const cards = document.getElementById("quote-cards");
   const tpl = document.getElementById("quote-tpl");
   const status = document.getElementById("upload-status");
@@ -66,12 +66,13 @@
   }
 
   function addCard(fields, source, message, text, file, retry) {
-    if (quotes.length >= MAX) { status.textContent = "You can compare up to 4 quotes."; return; }
+    if (quotes.length >= MAX) { status.textContent = "You can compare up to 2 quotes. Remove one to add another."; return; }
     const el = tpl.content.firstElementChild.cloneNode(true);
-    const letter = "ABCD"[quotes.length];
+    const used = quotes.map((q) => q.letter);
+    const letter = ["A", "B"].find((l) => !used.includes(l)) || "A";   // reuse a freed letter after Remove
     fields.label = fields.label && fields.label !== "Quote" ? fields.label : `Quote ${letter}`;
     fillFields(el, fields);
-    const q = { el, source, original: readFields(el), file: file || null };   // file stays in this page only, for "Try reading again"
+    const q = { el, source, letter, original: readFields(el), file: file || null };   // file stays in this page only, for "Try reading again"
     showRead(q, { source, message, text, retry });
     el.querySelector(".reread").addEventListener("click", async (ev) => {
       const btn = ev.currentTarget, rs = el.querySelector(".rstatus");
@@ -87,7 +88,8 @@
     el.querySelector(".remove").addEventListener("click", () => {
       quotes.splice(quotes.indexOf(q), 1); el.remove(); update();
     });
-    quotes.push(q); cards.appendChild(el); update();
+    if (letter === "A") { quotes.unshift(q); cards.prepend(el); } else { quotes.push(q); cards.appendChild(el); }   // A stays on the left
+    update();
     el.scrollIntoView({ behavior: "smooth", block: "start" });
   }
   function update() { document.getElementById("compare").disabled = quotes.length === 0; }
@@ -107,12 +109,13 @@
     const file = ev.target.files[0];
     ev.target.value = "";
     if (!file) return;
-    if (quotes.length >= MAX) { status.textContent = "You can compare up to 4 quotes."; return; }
+    if (quotes.length >= MAX) { status.textContent = "You can compare up to 2 quotes. Remove one to add another."; return; }
     status.textContent = "Reading your quote... this can take up to a minute.";
     try {
       const small = await shrinkImage(file);
       if (small.size > 4 * 1024 * 1024) throw new Error("The file is larger than 4 MB. Try a smaller photo or a PDF.");
-      const data = await readFile(small, `Quote ${"ABCD"[quotes.length]}`);
+      const free = ["A", "B"].find((l) => !quotes.some((q) => q.letter === l)) || "A";
+      const data = await readFile(small, `Quote ${free}`);
       addCard(data.fields, data.source, data.message, data.text, small, data.retry);
       status.textContent = "";
     } catch (e) { status.textContent = e.message; }

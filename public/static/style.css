@@ -77,11 +77,18 @@ details.more summary { cursor: pointer; font-weight: 600; color: var(--brand); p
 .crumbs { margin: 0; font-size: .9rem; }
 
 .upload { margin: 8px 0; }
-.qcard { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin: 12px 0; }
+#quote-cards { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 12px 0; align-items: start; }
+@media (min-width: 760px) { #quote-cards { grid-template-columns: 1fr 1fr; } }   /* Quote A and Quote B side by side */
+.qcard { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin: 0; min-width: 0; }
 .qcard header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .qcard .qlabel { width: auto; flex: 1 1 160px; font-weight: 700; }
 .qcard .src { font-size: .85rem; color: var(--warn); }
-.qcard .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0 12px; }
+/* one field per row: name on the left, value on the right, in a single vertical column */
+.qcard .grid { display: block; }
+.qcard .grid label { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; gap: 8px;
+  font-size: .86rem; font-weight: 500; margin: 0; padding: 3px 0; border-bottom: 1px solid var(--line); }
+.qcard .grid label:last-child { border-bottom: 0; }
+.qcard .grid input, .qcard .grid select { margin-top: 0; padding: 5px 8px; }
 .qcard label { font-size: .88rem; margin: 6px 0; }
 .qcard fieldset { border: 1px solid var(--line); border-radius: 8px; margin: 8px 0; padding: 4px 12px; }
 .qtext pre { white-space: pre-wrap; max-height: 220px; overflow: auto; font-size: .8rem; background: var(--bg); padding: 8px; }

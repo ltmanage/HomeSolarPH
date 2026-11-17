@@ -190,3 +190,9 @@ def test_retry_wait_uses_service_hint():
     assert ai_extract._retry_wait(r, 0) == 7.5
     assert ai_extract._retry_wait(httpx.Response(429, text="{}"), 1) == 8.0
     assert ai_extract._retry_wait(httpx.Response(429, headers={"retry-after": "90"}), 0) == ai_extract.MAX_WAIT
+
+
+def test_compare_allows_at_most_two_quotes():
+    CompareRequest(quotes=[good_quote(), good_quote(label="Quote B")], region="NCR")
+    with pytest.raises(ValueError):
+        CompareRequest(quotes=[good_quote(), good_quote(label="Quote B"), good_quote(label="Quote C")], region="NCR")

@@ -2,7 +2,7 @@
 {% block title %}Compare quotes{% endblock %}
 {% block content %}
 <h1>Compare installer quotes</h1>
-<p class="lead">Add up to 4 quotes. Upload a PDF or photo and we'll read the key figures{% if not settings.ai_enabled %} (automatic reading is off in this version, so you'll type them){% endif %}. You check and correct every figure before comparing.</p>
+<p class="lead">Add up to 2 quotes; they are shown side by side with the app's own estimate. Upload a PDF or photo and we'll read the key figures{% if not settings.ai_enabled %} (automatic reading is off in this version, so you'll type them){% endif %}. You check and correct every figure before comparing.</p>
 <p class="muted">Files are read once and never stored. Installer names stay on your screen only.{% if settings.ai_enabled and settings.ai_provider == "gemini" %} <strong>Before uploading, cover or crop out your own name, address and phone number</strong>: this test version reads files with Google's Gemini free tier (<a href="/about">details</a>).{% endif %}</p>
 
 <section id="context" class="note">

@@ -122,7 +122,7 @@ class QuoteFields(BaseModel):
 
 
 class CompareRequest(BaseModel):
-    quotes: list[QuoteFields] = Field(min_length=1, max_length=4)
+    quotes: list[QuoteFields] = Field(min_length=1, max_length=2)
     solar: SolarInput | None = None
     region: str | None = Field(None, max_length=12)
 
@@ -183,9 +183,9 @@ class ShareRequest(BaseModel):
     kind: Literal["check", "quotes"]
     solar: SolarInput | None = None
     region: str | None = Field(None, max_length=12)
-    quotes: list[QuoteFields] = Field(default_factory=list, max_length=4)
-    fields_corrected: list[int] = Field(default_factory=list, max_length=4)
-    extraction_source: list[str] = Field(default_factory=list, max_length=4)
+    quotes: list[QuoteFields] = Field(default_factory=list, max_length=2)
+    fields_corrected: list[int] = Field(default_factory=list, max_length=2)
+    extraction_source: list[str] = Field(default_factory=list, max_length=2)
 
 
 class FeedbackRequest(BaseModel):
